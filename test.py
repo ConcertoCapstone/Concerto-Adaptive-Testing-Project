@@ -14,7 +14,7 @@ def main():
               [sg.Submit(), sg.Cancel()]]
 
     # Create the Window
-    window = sg.Window('Window Title', layout)
+    window = sg.Window('Convert Blackboard tests to Concerto tests', layout)
     # Event Loop to process "events" and get the "values" of the inputs
     while True:
         event, values = window.read()
@@ -30,23 +30,25 @@ def main():
             s = s.split('.')[0] + '.xml' #change the filename .xml (this only works with res00001.dat for some reason)
             file2 = open(s, 'w')
             file2.write(data) #new .xml file with old .dat info
-            convert(file2, s)
+            convert(file2, s, data)
             break
     # print('You entered ', values[0])
 
     window.close()
 
 
-def convert(file, fileName):
+def convert(file, fileName, fileText):
     print(file)
-    tree = ET.parse(fileName) #supposed to parse .xml file into its components
-    root = tree.getroot()
+    # tree = ET.parse(fileName) #supposed to parse .xml file into its components
+    tree = ET.fromstring(fileText) #supposed to parse .xml file into its components
+    print(tree)
+    # root = tree.getroot()
 
-    get_range = lambda col: range(len(col))
-    l = [{r[i].tag: r[i].text for i in get_range(r)} for r in root]
-
-    df = pd.DataFrame.from_dict(l)
-    df.to_csv(fileName.split('.')[0] + '.csv')
+    # get_range = lambda col: range(len(col))
+    # l = [{r[i].tag: r[i].text for i in get_range(r)} for r in root]
+    #
+    # df = pd.DataFrame.from_dict(l)
+    # df.to_csv(fileName.split('.')[0] + '.csv')
 
 if __name__ == '__main__':
     main()
