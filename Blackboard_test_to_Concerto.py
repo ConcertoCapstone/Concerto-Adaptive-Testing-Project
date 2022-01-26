@@ -31,26 +31,32 @@ def main():
             data = file.read()  # this is the contents of the file
             dic = xmltodict.parse(data)
             print(type(dic))
-            dic2 = dic['questestinterop']['assessment']['section']
+            dic = dic['questestinterop']['assessment']['section']
             # pprint(dic2)
             # pprint(dic2[0]['presentation'])
             # ['presentation']['flow']['flow']['flow']['material']['mat_extension']['mat_formattedtext']
+            pprint(dic.keys())
 
-            for k in dic2:
+            for k in dic:
                 try:
-                    print("Question title = " + str(k['@title']) + "\n")
-                    print("Question = ")
+                    if (dic['bbmd_questiontype'] == "Multiple Choice"):
+                        print("succccess")
+                    dic = dic['item']
+
                     print(k)
-                    print(k['presentation']['flow']['flow']['flow']['material']['mat_extension']['mat_formattedtext'])
-                    print("Answer = ")
+                    # print("Question title = " + str(k['@title']) + "\n")
+                    # print("Question = ")
+
+                    # print(k['presentation']['flow']['flow']['flow']['material']['mat_extension']['mat_formattedtext'])
+                    # print("Answer = ")
                 except ValueError:
                     print("This is not multiple choice")
 
             # if os.path.exists(s):
             #     os.remove(s)
-            s = s.split('.')[0] + '.xml'  # change the filename .xml (this only works with res00001.dat for some reason)
-            file2 = open(s, 'w')
-            file2.write(data)  # new .xml file with old .dat info
+            # s = s.split('.')[0] + '.xml'  # change the filename .xml (this only works with res00001.dat for some reason)
+            # file2 = open(s, 'w')
+            # file2.write(data)  # new .xml file with old .dat info
             break
     # print('You entered ', values[0])
 
