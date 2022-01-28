@@ -25,30 +25,47 @@ def main():
         if event == sg.WIN_CLOSED or event == 'Cancel':  # if user closes window or clicks cancel
             break
         elif event == 'Submit':
+            # get the file that is selected on the form
             file = open(values[0])
-            s = '' + values[0]
-            s = s.split('/')[-1]  # grab the filename
-            data = file.read()  # this is the contents of the file
-            dic = xmltodict.parse(data)
-            print(type(dic))
-            dic = dic['questestinterop']['assessment']['section']
-            # pprint(dic2)
-            # pprint(dic2[0]['presentation'])
-            # ['presentation']['flow']['flow']['flow']['material']['mat_extension']['mat_formattedtext']
-            pprint(dic.keys())
 
+            # read the contents of the file into a variable
+            data = file.read()
+
+            # make a dictionary from the data (which is actually formatted like a xml file) and store into a variable
+            dic = xmltodict.parse(data)
+
+            # TODO debugging line
+            print(type(dic))
+
+            # sift through the dictionary until you get to the first question
+            dic = dic['questestinterop']['assessment']['section']['item']
+
+            i = 0
+            # iterate through each question in the dictionary
             for k in dic:
                 try:
-                    if (dic['bbmd_questiontype'] == "Multiple Choice"):
-                        print("succccess")
-                    dic = dic['item']
+                    # if the question is multiple choice
+                    if k['itemmetadata']['bbmd_questiontype'] == "Multiple Choice":
+                        print(i)
+                        # store the current question in a variable
+                        currentItem = k
 
-                    print(k)
-                    # print("Question title = " + str(k['@title']) + "\n")
-                    # print("Question = ")
+                        # print the current question's title
+                        print("Question title = " + str(currentItem['@title']) + "\n")
+
+
+                        # currentItem = currentItem['presentation']
+                        temp = str(currentItem['presentation']['flow']['flow'][0]['flow']['material']['mat_extension']['mat_formattedtext'][
+                                   '#text'])
+                        print("Question: " + temp[temp.find("<p>")+3:temp.rfind("</p>")])
+                        # print("Question = " + str(
+                        #     currentItem['flow']['flow']['flow']['material']['mat_extension']['mat_formattedtext']))
+
+                    # print(k)
 
                     # print(k['presentation']['flow']['flow']['flow']['material']['mat_extension']['mat_formattedtext'])
                     # print("Answer = ")
+                    i += 1
                 except ValueError:
                     print("This is not multiple choice")
 
