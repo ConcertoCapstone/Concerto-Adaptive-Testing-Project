@@ -46,20 +46,23 @@ def main():
                 try:
                     # if the question is multiple choice
                     if k['itemmetadata']['bbmd_questiontype'] == "Multiple Choice":
+
+                        # TODO debugging line
                         print(i)
+
                         # store the current question in a variable
                         currentItem = k
 
                         # print the current question's title
                         print("Question title = " + str(currentItem['@title']) + "\n")
 
+                        # TODO GRAB THE 
 
                         # currentItem = currentItem['presentation']
                         temp = str(currentItem['presentation']['flow']['flow'][0]['flow']['material']['mat_extension']['mat_formattedtext'][
                                    '#text'])
-                        print("Question: " + temp[temp.find("<p>")+3:temp.rfind("</p>")])
-                        # print("Question = " + str(
-                        #     currentItem['flow']['flow']['flow']['material']['mat_extension']['mat_formattedtext']))
+                        print("Question: " + temp)
+
 
                     # print(k)
 
