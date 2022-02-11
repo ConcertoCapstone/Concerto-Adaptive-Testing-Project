@@ -1,3 +1,4 @@
+import csv
 from pprint import pprint
 
 import PySimpleGUI as sg
@@ -26,7 +27,7 @@ def main():
             break
         elif event == 'Submit':
             # get the file that is selected on the form
-            file = open(values[0])
+            file = open(values[0], "rb")
 
             # read the contents of the file into a variable
             data = file.read()
@@ -40,44 +41,53 @@ def main():
             # sift through the dictionary until you get to the first question
             dic = dic['questestinterop']['assessment']['section']['item']
 
-            i = 0
-            # iterate through each question in the dictionary
-            for k in dic:
-                try:
-                    # if the question is multiple choice
-                    if k['itemmetadata']['bbmd_questiontype'] == "Multiple Choice":
+            i = 1
+            with open('output.csv', 'w') as f:
+                wr = csv.writer(f)
+                head = ['id', 'fixedIndex', 'trait', 'question', 'responseOptions', 'p1', 'p2', 'p3', 'p4',
+                        'SubGroupId', 'SubGroupSortOrder']
 
-                        # TODO debugging line
-                        print(i)
+                wr.writerow(head)
+                # iterate through each question in the dictionary
+                for k in dic:
+                    try:
+                        # if the question is multiple choice
+                        if k['itemmetadata']['bbmd_questiontype'] == "Multiple Choice":
+                            # TODO debugging line
+                            print(i)
 
-                        # store the current question in a variable
-                        currentItem = k
+                            # store the current question in a variable
+                            currentItem = k
 
-                        # print the current question's title
-                        print("Question title = " + str(currentItem['@title']) + "\n")
+                            # print the current question's title
+                            print("Question title = " + str(currentItem['@title']) + "\n")
 
-                        # TODO GRAB THE 
+                            # TODO GRAB THE
 
-                        # currentItem = currentItem['presentation']
-                        temp = str(currentItem['presentation']['flow']['flow'][0]['flow']['material']['mat_extension']['mat_formattedtext'][
-                                   '#text'])
-                        print("Question: " + temp)
+                            # currentItem = currentItem['presentation']
+                            question = str(
+                                currentItem['presentation']['flow']['flow'][0]['flow']['material']['mat_extension'][
+                                    'mat_formattedtext'][
+                                    '#text'])
+                            print("Question: " + question)
 
+                        # print(k)
 
-                    # print(k)
+                        # print(k['presentation']['flow']['flow']['flow']['material']['mat_extension']['mat_formattedtext'])
+                        # print("Answer = ")
 
-                    # print(k['presentation']['flow']['flow']['flow']['material']['mat_extension']['mat_formattedtext'])
-                    # print("Answer = ")
-                    i += 1
-                except ValueError:
-                    print("This is not multiple choice")
+                        data = [i, '', '', '"' + question + '"']
 
-            # if os.path.exists(s):
-            #     os.remove(s)
-            # s = s.split('.')[0] + '.xml'  # change the filename .xml (this only works with res00001.dat for some reason)
-            # file2 = open(s, 'w')
-            # file2.write(data)  # new .xml file with old .dat info
-            break
+                        i += 1
+                    except ValueError:
+                        print("This is not multiple choice")
+
+                # if os.path.exists(s):
+                #     os.remove(s)
+                # s = s.split('.')[0] + '.xml'  # change the filename .xml (this only works with res00001.dat for some reason)
+                # file2 = open(s, 'w')
+                # file2.write(data)  # new .xml file with old .dat info
+                break
     # print('You entered ', values[0])
 
     window.close()
