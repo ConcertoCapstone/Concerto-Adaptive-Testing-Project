@@ -33,10 +33,10 @@ def main():
             data = file.read()
 
             # make a dictionary from the data (which is actually formatted like a xml file) and store into a variable
-            dic = xmltodict.parse(data)
+            dic = xmltodict.parse(data.decode())
 
             # TODO debugging line
-            print(type(dic))
+            print(type(data))
 
             # sift through the dictionary until you get to the first question
             dic = dic['questestinterop']['assessment']['section']['item']
@@ -71,12 +71,25 @@ def main():
                                     '#text'])
                             print("Question: " + question)
 
+                            # pprint("This is the type" + str((currentItem['presentation']['flow']['flow'])))
+                            for block in currentItem['presentation']['flow']['flow']:
+                                if block['@class'] == "QUESTION_BLOCK":
+                                    pprint(block['flow']['material']['mat_extension']['mat_formattedtext']['#text'])
+                                elif block['@class'] == "RESPONSE_BLOCK":
+                                    for response in block['response_lid']['render_choice']:
+                                        respID = (response)
+                                        pprint("wackkkkkkkkkk"+ str(type(respID))) # TODO this returns as string when
+                                        # TODO I expected it to be either a dictionary or a list
+
+
+                            row = [i, '', '', question, 'responseOptions', 'p1', 'p2', 'p3', 'p4',
+                                   'SubGroupId', 'SubGroupSortOrder']
+                            wr.writerow(row)
+
                         # print(k)
 
                         # print(k['presentation']['flow']['flow']['flow']['material']['mat_extension']['mat_formattedtext'])
                         # print("Answer = ")
-
-                        data = [i, '', '', '"' + question + '"']
 
                         i += 1
                     except ValueError:
