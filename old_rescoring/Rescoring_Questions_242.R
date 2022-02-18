@@ -1,23 +1,49 @@
 rm(list=ls())
 
 
+#### Loads in the data
+### Old Files
+#session_results_data <- read.csv('EGR343F20SessionResults.csv', as.is=TRUE)
+#answers_data <- read.csv('EGR343F20Responses.csv',as.is=TRUE)
+
+
 ## Set the directory
-setwd("C:/Users/mgordon/Google Drive/Online Testing/")
+#setwd("C:/Users/mgordon/Google Drive/Online Testing/")
+setwd("/Users/reuellajacob/PycharmProjects/Concerto-Adaptive-Testing-Project/old_rescoring")
+
+## read in the session results (session number, score, user)
+# session_results_data <- read.csv('EGR343_Combo_Results.csv', as.is=TRUE)
 
 ## read in the questions (question numbers, parameters, etc.)
-# question_table <- read.csv(file = '343 Master Question Table.csv')
-question_table <- read.csv(file = '242_Blank_Master_Question_List.csv')
+#question_table <- read.csv(file = '343 Master Question Table.csv')
+question_table <- read.csv(file = 'Concerto_Dynamics_Test2_Question_Table_to_group_grouped.csv')
 
 ## read in the answers (session number, question number, correct/incorrect)
 #answers_data <- read.csv('S19_cat_response_table (question numbers changed)_v2.csv',as.is=TRUE)
 answers_data <- read.csv('242_cat_response_table.csv',as.is=TRUE)
+#answers_data <- read.csv('EGR343_Combo_Responses.csv',as.is=TRUE)
+
+# # create a matrix for session results with the session_id and score (theta)
+# session_results_matrix = matrix(,nrow =0 , ncol = 2)
+# dimnames(session_results_matrix) = list(c(),c("session_id","theta"))
 
 # make sure that the datafram doesn't already exist by removing any instances
 rm(session_results_df)
-
 # create a dataframe to hold session ids and scores
 session_results_df <- data.frame(session_id=integer(),
                                  theta = double())
+# 
+# session_data <- c("session_id","theta")
+# 
+# # Create a new dataframe for the session_ids and thetas. This will be used for the looping of the code
+# for (n in seq(from=1, to=length(session_results_data$value), by=2)){
+#   session_id = session_results_data$session_id[[n]]
+#   theta = as.numeric(session_results_data$value[[n]])
+#   session_data <- data.frame(session_id,theta)
+#   # print(session_data)
+#   session_results_df <- rbind(session_results_df,session_data)
+#   # print(session_results_df)
+# }
 
 max_session = max(answers_data$session_id)
 #print(max_session)
@@ -63,6 +89,14 @@ for (desired_session_id in 1:max_session){
   }
 }
 
+#print(session_results_df)
+
+
+
+
+
+
+
 ############################################
 #Start of loop
 ############################################
@@ -83,6 +117,13 @@ for (k in 1:40){
     #get the session_id, question_id, and result
     session_id = answers_data$session_id[[b]]
     question_number = answers_data$item_id[[b]]
+    if (question_number > 4800){
+      question_number = 4801 + question_number %% 5
+    } else {
+      if(question_number > 4000){
+        question_number = 4001 + question_number %% 6
+      }
+    }
     result = answers_data$score[[b]]
     #    print(c(session_id,question_number,result))
     
@@ -108,11 +149,11 @@ for (k in 1:40){
   
   ####### Now Rescore the questions
   # Don't score it if it has less than this number of responses
-  min_questions = 20
+  min_questions = 30
   
   
   for (q in 1:length(results)){
-#    print(q)
+    #print(q)
     if (length(results[[q]])>min_questions){
       
       discernment = question_table$p1[question_table$id==q]
@@ -123,9 +164,9 @@ for (k in 1:40){
       
       number_of_bins = 5
       bin_size = 5
-
+      
       number_of_bins = ceiling(length(results[[q]])/bin_size)
-            
+      
       j=0
       binned_theta = integer(number_of_bins)
       binned_score = integer(number_of_bins)
@@ -154,7 +195,7 @@ for (k in 1:40){
       y = Binned_Score_Data
       
       
-
+      
       tryCatch({
         discernment_param_start = question_table$p1[[match(q,question_table$id)]]
         diff_param_start = question_table$p2[[match(q,question_table$id)]]
@@ -173,20 +214,20 @@ for (k in 1:40){
         discernment = summary(fit)$coefficients[1,1]
         difficulty = summary(fit)$coefficients[2,1]
         
-#         if (q%%133 < 1){
-#           # print(x)
-#           # print(y)
-#           print(q)
-#           print('Plotting')
-#           plotx = x
-#           ploty = y
-#           
-#           plot(x,y,xlim=c(-1,2),ylim=c(0,1))
-# #          plot(x,y)
-#           Sys.sleep(1)
-#     #      plot(x,Func(x,discernment,difficulty),xlim=c(-3,3),ylim=c(0,1))}
-#           y = Func(x,discernment,difficulty)
-#           plot(x,y,xlim=c(-1,2),ylim = c(0,1))}        
+        #         if (q%%133 < 1){
+        #           # print(x)
+        #           # print(y)
+        #           print(q)
+        #           print('Plotting')
+        #           plotx = x
+        #           ploty = y
+        #           
+        #           plot(x,y,xlim=c(-1,2),ylim=c(0,1))
+        # #          plot(x,y)
+        #           Sys.sleep(1)
+        #     #      plot(x,Func(x,discernment,difficulty),xlim=c(-3,3),ylim=c(0,1))}
+        #           y = Func(x,discernment,difficulty)
+        #           plot(x,y,xlim=c(-1,2),ylim = c(0,1))}        
         
       }, warning = function(w){
         # summary(fit)
@@ -246,6 +287,13 @@ for (k in 1:40){
       tryCatch({
         score = one_test$score[[i]]
         question_id = one_test$item_id[[i]]
+        if (question_id > 4800){
+          question_id = 4801 + question_id %% 5
+        } else {
+          if(question_id > 4000){
+            question_id = 4001 + question_id %% 6
+          }
+        }
         p1 = question_table$p1[[match(question_id,question_table$id)]]
         p2 = question_table$p2[[match(question_id,question_table$id)]]
         p3 = question_table$p3[[match(question_id,question_table$id)]]
@@ -266,5 +314,5 @@ for (k in 1:40){
   }
 }
 
-write.csv(question_table,"rescored_quetions.csv")
+write.csv(question_table,"rescored_questions.csv")
 write.csv(session_results_df,"rescored_sessions.csv")
