@@ -43,47 +43,56 @@ def main():
 
             i = 1
             with open('output.csv', 'w') as f:
-                wr = csv.writer(f)
+                wr = csv.writer(f, quoting=csv.QUOTE_NONE)
                 head = ['id', 'fixedIndex', 'trait', 'question', 'responseOptions', 'p1', 'p2', 'p3', 'p4',
                         'SubGroupId', 'SubGroupSortOrder']
 
                 wr.writerow(head)
+                wr = csv.writer(f, quoting=csv.QUOTE_NONNUMERIC)
                 # iterate through each question in the dictionary
-                for k in dic:
+                for item in dic:
                     try:
                         # if the question is multiple choice
-                        if k['itemmetadata']['bbmd_questiontype'] == "Multiple Choice":
+                        if item['itemmetadata']['bbmd_questiontype'] == "Multiple Choice":
                             # TODO debugging line
                             print(i)
 
                             # store the current question in a variable
-                            currentItem = k
+                            currentItem = item
 
                             # print the current question's title
                             print("Question title = " + str(currentItem['@title']) + "\n")
 
-                            # TODO GRAB THE
-
                             # currentItem = currentItem['presentation']
-                            question = str(
-                                currentItem['presentation']['flow']['flow'][0]['flow']['material']['mat_extension'][
-                                    'mat_formattedtext'][
-                                    '#text'])
-                            print("Question: " + question)
-
+                            # question = str(
+                            #     currentItem['presentation']['flow']['flow'][0]['flow']['material']['mat_extension'][
+                            #         'mat_formattedtext'][
+                            #         '#text'])
+                            # print("Question: " + question)
+                            p = []
+                            respID = []
                             # pprint("This is the type" + str((currentItem['presentation']['flow']['flow'])))
+
                             for block in currentItem['presentation']['flow']['flow']:
+                                # pprint("asdmakd " + str(len(currentItem['presentation']['flow']['flow'])))
+
                                 if block['@class'] == "QUESTION_BLOCK":
-                                    pprint(block['flow']['material']['mat_extension']['mat_formattedtext']['#text'])
+                                    question = str(
+                                        block['flow']['material']['mat_extension']['mat_formattedtext']['#text'])
+                                    print("Question: " + question)
+
                                 elif block['@class'] == "RESPONSE_BLOCK":
-                                    for response in block['response_lid']['render_choice']:
-                                        respID = (response)
-                                        pprint("wackkkkkkkkkk"+ str(type(respID))) # TODO this returns as string when
-                                        # TODO I expected it to be either a dictionary or a list
+                                    for response in block['response_lid']['render_choice']['flow_label']:
+                                        respID.append(response['response_label']['@ident'])
+                                        ans = response['response_label']['flow_mat']['material']['mat_extension'][
+                                            'mat_formattedtext']['#text']
+                                        p.append(ans)
+                                        pprint(str(respID) + " " + str(ans))
 
-
-                            row = [i, '', '', question, 'responseOptions', 'p1', 'p2', 'p3', 'p4',
-                                   'SubGroupId', 'SubGroupSortOrder']
+                            row = [i, '', '', str(question), 'responseOptions', str(p[0]),
+                                   str(p[1]), str(p[2]),
+                                   str(p[3]), 'SubGroupId', 'SubGroupSortOrder']
+                            pprint(row)
                             wr.writerow(row)
 
                         # print(k)
@@ -104,6 +113,27 @@ def main():
     # print('You entered ', values[0])
 
     window.close()
+
+
+def iterative(currentItem, p, respID):
+    for block in currentItem['presentation']['flow']['flow']:
+        pprint("asdmakd " + str(len(currentItem['presentation']['flow']['flow'])))
+
+        if block['@class'] == "QUESTION_BLOCK":
+            pprint(block['flow']['material']['mat_extension']['mat_formattedtext']['#text'])
+
+        elif block['@class'] == "RESPONSE_BLOCK":
+            for response in block['response_lid']['render_choice']['flow_label']:
+                respID.append(response['response_label']['@ident'])
+                ans = response['response_label']['flow_mat']['material']['mat_extension'][
+                    'mat_formattedtext']['#text']
+                p.append(ans)
+                pprint(str(respID) + " " + str(ans))
+
+        return {
+            "p": p,
+            "respID": respID
+        }
 
 
 def convertFileToStr():
