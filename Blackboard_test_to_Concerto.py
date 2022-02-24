@@ -1,7 +1,7 @@
 import csv
 from pprint import pprint
 
-import PySimpleGUI as sg
+import PySimpleGUI as gui
 import xml.etree.ElementTree as ET
 import pandas as pd
 import os
@@ -10,138 +10,161 @@ import xmltodict
 
 
 def main():
-    sg.ChangeLookAndFeel('DarkAmber')  # Add a touch of color
+    # set the window color theme
+    gui.ChangeLookAndFeel('DarkAmber')
 
-    # All the stuff inside your window.
-    layout = [[sg.Text('Upload Blackboard sample quiz for conversion to .csv')],
-              [sg.Text('Upload .dat file:', size=(15, 1)), sg.InputText(),
-               sg.FileBrowse(size=(10, 1), file_types=(("DAT files", "*.dat"),))],
-              [sg.Submit(), sg.Cancel()]]
+    # add features to the window
+    layout = [[gui.Text('Upload Blackboard sample quiz for conversion to .csv')],
+              [gui.Text('Upload .dat file:', size=(15, 1)), gui.InputText(),
+               gui.FileBrowse(size=(10, 1), file_types=(("DAT files", "*.dat"),))],
+              [gui.Submit(), gui.Cancel()]]
 
-    # Create the Window
-    window = sg.Window('Window Title', layout)
-    # Event Loop to process "events" and get the "values" of the inputs
+    # initialize the window with the layout we made
+    window = gui.Window('Window Title', layout)
+
+    # loop that handles events and gets the values of whatever is input -- in our case, a .DAT file
     while True:
         event, values = window.read()
-        if event == sg.WIN_CLOSED or event == 'Cancel':  # if user closes window or clicks cancel
+        if event == gui.WIN_CLOSED or event == 'Cancel':  # if a user closes the window or clicks cancel
             break
         elif event == 'Submit':
-            # get the file that is selected on the form
+            # get the file that is selected using the form
             file = open(values[0], "rb")
 
             # read the contents of the file into a variable
-            data = file.read()
+            fileContents = file.read()
 
-            # make a dictionary from the data (which is actually formatted like a xml file) and store into a variable
-            dic = xmltodict.parse(data.decode())
+            # make a dictionary from the fileContents (which is actually formatted like a xml file) and store it into
+            # a variable
+            contentDict = xmltodict.parse(fileContents.decode())
 
-            # TODO debugging line
-            print(type(data))
-
-            # sift through the dictionary until you get to the first question
-            dic = dic['questestinterop']['assessment']['section']['item']
+            # Sift through the dictionary until you get to where the questions are stored
+            # TODO move this to the actual documentation and not in the comments
+            #  We manually found where in the contentDict the file was found by converting the .DAT file to
+            #  an .XML file and using a JetBrains IDE (PyCharm, IntelliJ, etc) to format that .XML file correctly
+            #  so it was humanly-readable
+            contentDict = contentDict['questestinterop']['assessment']['section']['item']
 
             i = 1
             with open('output.csv', 'w') as f:
-                wr = csv.writer(f, quoting=csv.QUOTE_NONE)
-                head = ['id', 'fixedIndex', 'trait', 'question', 'responseOptions', 'p1', 'p2', 'p3', 'p4',
-                        'SubGroupId', 'SubGroupSortOrder']
+                # wr = csv.writer(f, quoting=csv.QUOTE_NONE)
+                head = 'id,fixedIndex,trait,question,responseOptions,p1,p2,p3,p4,SubGroupId,SubGroupSortOrder\n'
+                f.write(head)
 
-                wr.writerow(head)
-                wr = csv.writer(f, quoting=csv.QUOTE_NONNUMERIC)
                 # iterate through each question in the dictionary
-                for item in dic:
+                for questEntry in contentDict:
                     try:
-                        # if the question is multiple choice
-                        if item['itemmetadata']['bbmd_questiontype'] == "Multiple Choice":
-                            # TODO debugging line
-                            print(i)
+                        # if the question is multiple choice -- making sure the questions are the correct type
+                        if questEntry['itemmetadata']['bbmd_questiontype'] == "Multiple Choice":
 
                             # store the current question in a variable
-                            currentItem = item
+                            currentQuest = questEntry
 
-                            # print the current question's title
-                            print("Question title = " + str(currentItem['@title']) + "\n")
 
-                            # currentItem = currentItem['presentation']
-                            # question = str(
-                            #     currentItem['presentation']['flow']['flow'][0]['flow']['material']['mat_extension'][
-                            #         'mat_formattedtext'][
-                            #         '#text'])
-                            # print("Question: " + question)
-                            p = []
-                            respID = []
-                            # pprint("This is the type" + str((currentItem['presentation']['flow']['flow'])))
+                            retVal = getQuestionsAndResponses(currentQuest, [], [])
+                            questionStr = retVal['question']
+                            respList = retVal['resp']
+                            respIDList = retVal['respID']
 
-                            for block in currentItem['presentation']['flow']['flow']:
-                                # pprint("asdmakd " + str(len(currentItem['presentation']['flow']['flow'])))
+                            sortedRespList = responseSort(currentQuest['resprocessing']['respcondition'], respList,
+                                                          respIDList)
 
-                                if block['@class'] == "QUESTION_BLOCK":
-                                    question = str(
-                                        block['flow']['material']['mat_extension']['mat_formattedtext']['#text'])
-                                    print("Question: " + question)
+                            responseOptions = answer_generator_normal(sortedRespList, '"')
 
-                                elif block['@class'] == "RESPONSE_BLOCK":
-                                    for response in block['response_lid']['render_choice']['flow_label']:
-                                        respID.append(response['response_label']['@ident'])
-                                        ans = response['response_label']['flow_mat']['material']['mat_extension'][
-                                            'mat_formattedtext']['#text']
-                                        p.append(ans)
-                                        pprint(str(respID) + " " + str(ans))
+                            row = str(i) + ',,' + ',' + '"' + str(
+                                questionStr) + '",' + responseOptions + ',,,,,,\n'
 
-                            row = [i, '', '', str(question), 'responseOptions', str(p[0]),
-                                   str(p[1]), str(p[2]),
-                                   str(p[3]), 'SubGroupId', 'SubGroupSortOrder']
-                            pprint(row)
-                            wr.writerow(row)
-
-                        # print(k)
-
-                        # print(k['presentation']['flow']['flow']['flow']['material']['mat_extension']['mat_formattedtext'])
-                        # print("Answer = ")
+                        pprint(row)
+                        f.write(row)
 
                         i += 1
                     except ValueError:
                         print("This is not multiple choice")
 
-                # if os.path.exists(s):
-                #     os.remove(s)
-                # s = s.split('.')[0] + '.xml'  # change the filename .xml (this only works with res00001.dat for some reason)
-                # file2 = open(s, 'w')
-                # file2.write(data)  # new .xml file with old .dat info
-                break
-    # print('You entered ', values[0])
-
     window.close()
 
 
-def iterative(currentItem, p, respID):
+def getQuestionsAndResponses(currentItem, resp, respID):
+    question = ""
     for block in currentItem['presentation']['flow']['flow']:
-        pprint("asdmakd " + str(len(currentItem['presentation']['flow']['flow'])))
 
         if block['@class'] == "QUESTION_BLOCK":
-            pprint(block['flow']['material']['mat_extension']['mat_formattedtext']['#text'])
+            question = block['flow']['material']['mat_extension']['mat_formattedtext']['#text']
+            pprint(question)
 
         elif block['@class'] == "RESPONSE_BLOCK":
             for response in block['response_lid']['render_choice']['flow_label']:
                 respID.append(response['response_label']['@ident'])
                 ans = response['response_label']['flow_mat']['material']['mat_extension'][
                     'mat_formattedtext']['#text']
-                p.append(ans)
+                resp.append(ans)
                 pprint(str(respID) + " " + str(ans))
 
-        return {
-            "p": p,
-            "respID": respID
-        }
+    return {
+        "resp": resp,
+        "respID": respID,
+        "question": question
+    }
 
 
-def convertFileToStr():
-    print()
+def responseSort(currentItem, respList, respIDList):
+    sortedRespList = [respList[0]]
+    i = 0
 
+    for setOfResponses in currentItem:
+        if setOfResponses['@title'] == "correct":
+            for respID in respIDList:
+                print(setOfResponses)
+                if respID == setOfResponses['conditionvar']['varequal']['#text']:
+                    sortedRespList[0] = respList[i]
+                else:
+                    sortedRespList.append(respList[i])
+                i = i + 1
+            break
 
-def parse(file, fileName):
-    print("hello")
+    return sortedRespList
+
+# Code from Dr. Gordon for creating the responseOptions line
+def answer_generator_normal(sortedRespList, bracket_char):
+    # ResponseOptions = '{"type":"options","optionsRandomOrder":"1","options":['
+    ResponseOptions = '{""type"":","options"",""optionsRandomOrder"":""1"",""options"":['
+
+    AnswerOptionRaw = bracket_char*2 + sortedRespList[0] + bracket_char*2
+
+    # Each line that looks like this was changed from this:
+    # ResponseOptions = ResponseOptions + '{"label":"' + AnswerOptionRaw + '","value":"1"}'
+    # To this:
+    ResponseOptions = ResponseOptions + '{""label"":' + AnswerOptionRaw + ',""value"":""1""}'
+    # This is because there were too many quotes
+
+    ResponseOptions = ResponseOptions + ','
+
+    AnswerOptionRaw = bracket_char*2 + sortedRespList[1] + bracket_char*2
+
+    ResponseOptions = ResponseOptions + '{""label"":' + AnswerOptionRaw + ',""value"":""2""}'
+
+    ResponseOptions = ResponseOptions + ','
+
+    AnswerOptionRaw = bracket_char*2 + sortedRespList[2] + bracket_char*2
+
+    ResponseOptions = ResponseOptions + '{""label"":' + AnswerOptionRaw + ',""value"":""3""}'
+
+    ResponseOptions = ResponseOptions + ','
+
+    AnswerOptionRaw = bracket_char*2 + sortedRespList[3] + bracket_char*2
+
+    ResponseOptions = ResponseOptions + '{""label"":' + AnswerOptionRaw + ',""value"":""4""}'
+
+    ResponseOptions = ResponseOptions + '],""defaultScore"":""0"",""scoreMap"":[{""value"":""1"",""score"":""1"",""trait"":null}]}'
+
+    ResponseOptions = ResponseOptions.replace('\\', '\\\\')
+
+    # ResponseOptions = ResponseOptions.replace('"', '""')
+
+    # Lines added by Chris
+    ResponseOptions = '"' + ResponseOptions + '"'
+
+    return ResponseOptions
 
 
 if __name__ == '__main__':
