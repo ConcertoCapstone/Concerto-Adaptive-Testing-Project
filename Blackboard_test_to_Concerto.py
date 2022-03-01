@@ -2,10 +2,6 @@ import csv
 from pprint import pprint
 
 import PySimpleGUI as gui
-import xml.etree.ElementTree as ET
-import pandas as pd
-import os
-
 import xmltodict
 
 
