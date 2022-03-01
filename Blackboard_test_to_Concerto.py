@@ -71,8 +71,11 @@ def main():
 
                             responseOptions = answer_generator_normal(sortedRespList, '"')
 
-                            row = str(i) + ',,' + ',' + '"' + str(
-                                questionStr) + '",' + responseOptions + ',,,,,,\n'
+                            # row = str(i) + ',,' + ',' + '"' + str(
+                            #     questionStr) + '",' + responseOptions + ',,,,,,\n'
+
+                            row = str(i) + ',1,1' + ',' + '"' + str(
+                                questionStr) + '",' + responseOptions + ',1,1,1,1,1,1\n'
 
                         pprint(row)
                         f.write(row)
@@ -127,7 +130,7 @@ def responseSort(currentItem, respList, respIDList):
 # Code from Dr. Gordon for creating the responseOptions line
 def answer_generator_normal(sortedRespList, bracket_char):
     # ResponseOptions = '{"type":"options","optionsRandomOrder":"1","options":['
-    ResponseOptions = '{""type"":","options"",""optionsRandomOrder"":""1"",""options"":['
+    ResponseOptions = '{""type"":""options"",""optionsRandomOrder"":""1"",""options"":['
 
     AnswerOptionRaw = bracket_char*2 + sortedRespList[0] + bracket_char*2
 
