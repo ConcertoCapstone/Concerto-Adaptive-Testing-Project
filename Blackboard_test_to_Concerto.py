@@ -52,10 +52,8 @@ def main():
                     try:
                         # if the question is multiple choice -- making sure the questions are the correct type
                         if questEntry['itemmetadata']['bbmd_questiontype'] == "Multiple Choice":
-
                             # store the current question in a variable
                             currentQuest = questEntry
-
 
                             retVal = getQuestionsAndResponses(currentQuest, [], [])
                             questionStr = retVal['question']
@@ -96,6 +94,8 @@ def getQuestionsAndResponses(currentItem, resp, respID):
                 respID.append(response['response_label']['@ident'])
                 ans = response['response_label']['flow_mat']['material']['mat_extension'][
                     'mat_formattedtext']['#text']
+                ans = str(ans)
+                ans = ans[ans.find("<p>") + 3: ans.rfind("</p>")]
                 resp.append(ans)
                 pprint(str(respID) + " " + str(ans))
 
@@ -123,12 +123,13 @@ def responseSort(currentItem, respList, respIDList):
 
     return sortedRespList
 
+
 # Code from Dr. Gordon for creating the responseOptions line
 def answer_generator_normal(sortedRespList, bracket_char):
     # ResponseOptions = '{"type":"options","optionsRandomOrder":"1","options":['
     ResponseOptions = '{""type"":""options"",""optionsRandomOrder"":""1"",""options"":['
 
-    AnswerOptionRaw = bracket_char*2 + sortedRespList[0] + bracket_char*2
+    AnswerOptionRaw = bracket_char * 2 + sortedRespList[0] + bracket_char * 2
 
     # Each line that looks like this was changed from this:
     # ResponseOptions = ResponseOptions + '{"label":"' + AnswerOptionRaw + '","value":"1"}'
@@ -138,19 +139,19 @@ def answer_generator_normal(sortedRespList, bracket_char):
 
     ResponseOptions = ResponseOptions + ','
 
-    AnswerOptionRaw = bracket_char*2 + sortedRespList[1] + bracket_char*2
+    AnswerOptionRaw = bracket_char * 2 + sortedRespList[1] + bracket_char * 2
 
     ResponseOptions = ResponseOptions + '{""label"":' + AnswerOptionRaw + ',""value"":""2""}'
 
     ResponseOptions = ResponseOptions + ','
 
-    AnswerOptionRaw = bracket_char*2 + sortedRespList[2] + bracket_char*2
+    AnswerOptionRaw = bracket_char * 2 + sortedRespList[2] + bracket_char * 2
 
     ResponseOptions = ResponseOptions + '{""label"":' + AnswerOptionRaw + ',""value"":""3""}'
 
     ResponseOptions = ResponseOptions + ','
 
-    AnswerOptionRaw = bracket_char*2 + sortedRespList[3] + bracket_char*2
+    AnswerOptionRaw = bracket_char * 2 + sortedRespList[3] + bracket_char * 2
 
     ResponseOptions = ResponseOptions + '{""label"":' + AnswerOptionRaw + ',""value"":""4""}'
 
