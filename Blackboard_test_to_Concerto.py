@@ -70,8 +70,8 @@ def main():
                             # row = str(i) + ',,' + ',' + '"' + str(
                             #     questionStr) + '",' + responseOptions + ',,,,,,\n'
 
-                            row = str(i) + ',1,1' + ',' + '"' + str(
-                                questionStr) + '",' + responseOptions + ',1,1,1,1,1,1\n'
+                            row = str(i) + ',1,' +str(i)+ ',' + '"' + str(
+                                questionStr) + '",' + responseOptions + ','+str(i)+'1,1,1,1,1,1\n'
 
                         pprint(row)
                         f.write(row)
@@ -96,6 +96,7 @@ def getQuestionsAndResponses(currentItem, resp, respID):
                 respID.append(response['response_label']['@ident'])
                 ans = response['response_label']['flow_mat']['material']['mat_extension'][
                     'mat_formattedtext']['#text']
+                ans = str(ans)[str(ans).index("<p>") + 3:str(ans).index("</p>")]
                 resp.append(ans)
                 pprint(str(respID) + " " + str(ans))
 
