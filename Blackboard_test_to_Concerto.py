@@ -1,6 +1,5 @@
-import csv
 from pprint import pprint
-
+import unicodedata
 import PySimpleGUI as gui
 import xmltodict
 
@@ -42,13 +41,16 @@ def main():
             contentDict = contentDict['questestinterop']['assessment']['section']['item']
 
             i = 1
-            with open('output.csv', 'w') as f:
+            outFilename = file.name.split(".")[0] + ".csv"
+            with open(outFilename, 'w') as f:
                 # wr = csv.writer(f, quoting=csv.QUOTE_NONE)
-                head = 'id,fixedIndex,trait,question,responseOptions,p1,p2,p3,p4,SubGroupId,SubGroupSortOrder\n'
+                head = 'id,*fixedIndex,*trait,*question,*responseOptions,*p1,*p2,*p3,*p4,*SubGroupId,' \
+                       '*SubGroupSortOrder\n '
                 f.write(head)
 
                 # iterate through each question in the dictionary
                 for questEntry in contentDict:
+
                     try:
                         # if the question is multiple choice -- making sure the questions are the correct type
                         if questEntry['itemmetadata']['bbmd_questiontype'] == "Multiple Choice":
@@ -56,7 +58,11 @@ def main():
                             currentQuest = questEntry
 
                             retVal = getQuestionsAndResponses(currentQuest, [], [])
+
                             questionStr = retVal['question']
+
+                            questionStr = sanitizeString(questionStr)
+
                             respList = retVal['resp']
                             respIDList = retVal['respID']
 
@@ -64,19 +70,50 @@ def main():
                                                           respIDList)
 
                             responseOptions = answer_generator_normal(sortedRespList, '"')
+                            responseOptions = sanitizeString(responseOptions)
 
-                            # row = str(i) + ',,' + ',' + '"' + str(
-                            #     questionStr) + '",' + responseOptions + ',,,,,,\n'
+                            # responseOptions = unicodedata.normalize('NFKD', responseOptions)
 
-                            row = str(i) + ',1,1' + ',' + '"' + str(
-                                questionStr) + '",' + responseOptions + ',1,1,1,1,1,1\n'
+                            row = str(i) + ',*,*1,*' + '"' + str(
+                                questionStr) + '",*' + responseOptions + ',*1,*1,*1,*1,*1,*\n'  # ,* is used as
+                            # a delineation tool later
 
-                        pprint(row)
+                        # pprint(row)
                         f.write(row)
 
                         i += 1
                     except ValueError:
                         print("This is not multiple choice")
+
+        file = open(outFilename, "r")
+        j = 0
+
+        listOfEntries = []
+        # TODO add in between layout if statement that allows the user to opt out of this if they so decide (get rid
+        #  of deliniation phrases from csv and return)
+        for line in file.readlines():
+
+            line = line.split(',*')
+            lineOnForm = []
+            for item in line:
+                lineOnForm.append(gui.InputText(str(item), size=15))
+            listOfEntries.append(lineOnForm)
+
+            if j == 10:
+                layout2 = [[gui.Text('Lines from the .csv for editing')], ]
+                for entry in listOfEntries:
+                    layout2.append(entry)
+                layout2.append([gui.Button("Next 10 Entries")])
+                window2 = gui.Window("time to choose", layout2)
+                j = 0
+
+                while True:
+                    event2, values2 = window2.read()
+                    if event2 == "Cancel" or event2 == gui.WIN_CLOSED:
+                        window2.close()
+                        break
+                window2.close()
+            j += 1
 
     window.close()
 
@@ -104,6 +141,19 @@ def getQuestionsAndResponses(currentItem, resp, respID):
         "respID": respID,
         "question": question
     }
+
+
+def sanitizeString(s):
+    # retList = []
+    # for r in listR:
+    saniStr = unicodedata.normalize('NFKD', s)
+    saniStr = saniStr.encode('utf-8')
+    saniStr = saniStr.replace(b'\xe2\x80\x9c', b"'")
+    saniStr = saniStr.replace(b'\xe2\x80\x9d', b"'")
+    saniStr = saniStr.replace(b'\xe2\x80\x99', b"'")
+    saniStr = saniStr.decode('utf-8')
+
+    return saniStr
 
 
 def responseSort(currentItem, respList, respIDList):
