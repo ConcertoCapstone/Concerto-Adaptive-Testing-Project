@@ -74,6 +74,7 @@ def main():
 
                             # responseOptions = unicodedata.normalize('NFKD', responseOptions)
 
+                            # // TODO possibly convert to a list of variables
                             row = str(i) + ',*,*1,*' + '"' + str(
                                 questionStr) + '",*' + responseOptions + ',*1,*1,*1,*1,*1,*\n'  # ,* is used as
                             # a delineation tool later
