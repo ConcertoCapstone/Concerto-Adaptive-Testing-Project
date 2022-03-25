@@ -2,7 +2,7 @@ from pprint import pprint
 import unicodedata
 import PySimpleGUI as gui
 import xmltodict
-
+import copy
 
 def main():
     # set the window color theme
@@ -45,7 +45,7 @@ def main():
             with open(outFilename, 'w') as f:
                 # wr = csv.writer(f, quoting=csv.QUOTE_NONE)
                 head = 'id,*fixedIndex,*trait,*question,*responseOptions,*p1,*p2,*p3,*p4,*SubGroupId,' \
-                       '*SubGroupSortOrder\n '
+                       '*SubGroupSortOrder\n'
                 f.write(head)
 
                 # iterate through each question in the dictionary
@@ -76,7 +76,7 @@ def main():
 
                             # // TODO possibly convert to a list of variables
                             row = str(i) + ',*,*1,*' + '"' + str(
-                                questionStr) + '",*' + responseOptions + ',*1,*1,*1,*1,*1,*\n'  # ,* is used as
+                                questionStr) + '",*' + responseOptions + ',*1,*1,*1,*1,*1,*1\n'  # ,* is used as
                             # a delineation tool later
 
                         # pprint(row)
@@ -86,37 +86,97 @@ def main():
                     except ValueError:
                         print("This is not multiple choice")
 
-        file = open(outFilename, "r")
-        j = 0
+        csvEditLayout = makeNewLayout(outFilename)
+        window = gui.Window('My window with tabs', csvEditLayout, no_titlebar=False)
 
-        listOfEntries = []
-        # TODO add in between layout if statement that allows the user to opt out of this if they so decide (get rid
-        #  of deliniation phrases from csv and return)
-        for line in file.readlines():
-
-            line = line.split(',*')
-            lineOnForm = []
-            for item in line:
-                lineOnForm.append(gui.InputText(str(item), size=15))
-            listOfEntries.append(lineOnForm)
-
-            if j == 10:
-                layout2 = [[gui.Text('Lines from the .csv for editing')], ]
-                for entry in listOfEntries:
-                    layout2.append(entry)
-                layout2.append([gui.Button("Next 10 Entries")])
-                window2 = gui.Window("time to choose", layout2)
-                j = 0
-
-                while True:
-                    event2, values2 = window2.read()
-                    if event2 == "Cancel" or event2 == gui.WIN_CLOSED:
-                        window2.close()
-                        break
-                window2.close()
-            j += 1
+        tab_keys = ('-TAB1-', '-TAB2-')#, '-TAB3-')
+        while True:
+            event, values = window.read()  # type: str, dict
+            print(event, values)
+            if event == gui.WIN_CLOSED:
+                break
+            if event == 'Invisible':
+                window[tab_keys[int(values['-IN-']) - 1]].update(visible=False)
+            if event == 'Visible':
+                window[tab_keys[int(values['-IN-']) - 1]].update(visible=True)
+            if event == 'Select':
+                window[tab_keys[int(values['-IN-']) - 1]].select()
+        # window2 = gui.Window("time to choose", csvEditLayout)
+        # while True:
+        #     event2, values2 = window2.read()
+        #     if event2 == "Cancel" or event2 == gui.WIN_CLOSED:
+        #         window2.close()
+        #         layout2 = None
+        #         break
 
     window.close()
+
+
+def makeNewLayout(outFilename):
+    file = open(outFilename, "r")
+
+    # TODO add in between layout if statement that allows the user to opt out of this if they so decide (get rid
+    #  of deliniation phrases from csv and return)
+    listOfEntries = file.readlines()
+    allTabs = []
+    windowLines = []
+    windowTabLines = []
+    header = listOfEntries.pop(0)
+    header = header.split(',*')
+    # windowTabLines.append(gui.Text(item) for item in header)
+    for item in header:
+        windowTabLines.append(gui.Text(str(item), size=13))
+    deep_tabbed = copy.deepcopy(windowTabLines)
+    windowLines.append(deep_tabbed)
+    windowTabLines.clear()
+
+    for i, line in enumerate(listOfEntries, 1):
+        line = line.split(',*')
+        for item in line:
+            windowTabLines.append(gui.InputText(str(item), size=15))
+
+        deep_tabbed = copy.deepcopy(windowTabLines)
+        windowLines.append(deep_tabbed)
+        windowTabLines.clear()
+
+        if i != 0 and i % 10 == 0 or i == len(listOfEntries):
+            deep_windowed = copy.deepcopy(windowLines)
+            allTabs.append(deep_windowed)
+            windowLines.clear()
+            for item in header:
+                windowTabLines.append(gui.Text(str(item), size=13))
+            deep_tabbed = copy.deepcopy(windowTabLines)
+            windowLines.append(deep_tabbed)
+            windowTabLines.clear()
+            # windowTabLines.append(gui.Text(item) for item in header)
+            # windowTabLines.append(gui.Text(header), size=15)
+
+
+    # allTabs = allTabs[::-1]
+    tabGroupLayout = []
+    # for tab in allTabs:
+    tabGroupLayout.append([gui.Tab("Tab 1", allTabs[0], key='-TAB1-')])
+    tabGroupLayout.append([gui.Tab("Tab 2", allTabs[1], key='-TAB2-')])
+    # tabGroupLayout.append([gui.Tab("Tab 3", allTabs[2], key='-TAB3-')])
+
+    layout3 = [[gui.TabGroup(tabGroupLayout,
+                             enable_events=True,
+                             key='-TABGROUP-')],
+               [gui.Text('Make tab number'), gui.Input(key='-IN-', size=(3, 1)), gui.Button('Invisible'),
+                gui.Button('Visible'), gui.Button('Select')]]
+
+    return layout3
+
+    # layout2.append([[gui.Text('Lines from the .csv for editing')], ])
+    # for entry in listOfEntries:
+    #     layout2.append(entry)
+    # layout2.append([gui.Button("Next 10 Entries")])
+    #
+    # j = 0
+    #
+    # window2.close()
+    # layout2 = None
+    # j += 1
 
 
 def getQuestionsAndResponses(currentItem, resp, respID):
