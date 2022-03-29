@@ -1,9 +1,8 @@
-import csv
 from pprint import pprint
-
+import unicodedata
 import PySimpleGUI as gui
 import xmltodict
-
+import copy
 
 def main():
     # set the window color theme
@@ -42,23 +41,28 @@ def main():
             contentDict = contentDict['questestinterop']['assessment']['section']['item']
 
             i = 1
-            with open('output.csv', 'w') as f:
+            outFilename = file.name.split(".")[0] + ".csv"
+            with open(outFilename, 'w') as f:
                 # wr = csv.writer(f, quoting=csv.QUOTE_NONE)
-                head = 'id,fixedIndex,trait,question,responseOptions,p1,p2,p3,p4,SubGroupId,SubGroupSortOrder\n'
+                head = 'id,*fixedIndex,*trait,*question,*responseOptions,*p1,*p2,*p3,*p4,*SubGroupId,' \
+                       '*SubGroupSortOrder\n'
                 f.write(head)
 
                 # iterate through each question in the dictionary
                 for questEntry in contentDict:
+
                     try:
                         # if the question is multiple choice -- making sure the questions are the correct type
                         if questEntry['itemmetadata']['bbmd_questiontype'] == "Multiple Choice":
-
                             # store the current question in a variable
                             currentQuest = questEntry
 
-
                             retVal = getQuestionsAndResponses(currentQuest, [], [])
+
                             questionStr = retVal['question']
+
+                            questionStr = sanitizeString(questionStr)
+
                             respList = retVal['resp']
                             respIDList = retVal['respID']
 
@@ -66,21 +70,113 @@ def main():
                                                           respIDList)
 
                             responseOptions = answer_generator_normal(sortedRespList, '"')
+                            responseOptions = sanitizeString(responseOptions)
 
-                            # row = str(i) + ',,' + ',' + '"' + str(
-                            #     questionStr) + '",' + responseOptions + ',,,,,,\n'
+                            # responseOptions = unicodedata.normalize('NFKD', responseOptions)
 
-                            row = str(i) + ',1,' +str(i)+ ',' + '"' + str(
-                                questionStr) + '",' + responseOptions + ','+str(i)+'1,1,1,1,1,1\n'
+                            # // TODO possibly convert to a list of variables
+                            row = str(i) + ',*,*1,*' + '"' + str(
+                                questionStr) + '",*' + responseOptions + ',*1,*1,*1,*1,*1,*1\n'  # ,* is used as
+                            # a delineation tool later
 
-                        pprint(row)
+                        # pprint(row)
                         f.write(row)
 
                         i += 1
                     except ValueError:
                         print("This is not multiple choice")
 
+        csvEditLayout = makeNewLayout(outFilename)
+        window = gui.Window('My window with tabs', csvEditLayout, no_titlebar=False)
+
+        tab_keys = ('-TAB1-', '-TAB2-')#, '-TAB3-')
+        while True:
+            event, values = window.read()  # type: str, dict
+            print(event, values)
+            if event == gui.WIN_CLOSED:
+                break
+            if event == 'Invisible':
+                window[tab_keys[int(values['-IN-']) - 1]].update(visible=False)
+            if event == 'Visible':
+                window[tab_keys[int(values['-IN-']) - 1]].update(visible=True)
+            if event == 'Select':
+                window[tab_keys[int(values['-IN-']) - 1]].select()
+        # window2 = gui.Window("time to choose", csvEditLayout)
+        # while True:
+        #     event2, values2 = window2.read()
+        #     if event2 == "Cancel" or event2 == gui.WIN_CLOSED:
+        #         window2.close()
+        #         layout2 = None
+        #         break
+
     window.close()
+
+
+def makeNewLayout(outFilename):
+    file = open(outFilename, "r")
+
+    # TODO add in between layout if statement that allows the user to opt out of this if they so decide (get rid
+    #  of deliniation phrases from csv and return)
+    listOfEntries = file.readlines()
+    allTabs = []
+    windowLines = []
+    windowTabLines = []
+    header = listOfEntries.pop(0)
+    header = header.split(',*')
+    # windowTabLines.append(gui.Text(item) for item in header)
+    for item in header:
+        windowTabLines.append(gui.Text(str(item), size=13))
+    deep_tabbed = copy.deepcopy(windowTabLines)
+    windowLines.append(deep_tabbed)
+    windowTabLines.clear()
+
+    for i, line in enumerate(listOfEntries, 1):
+        line = line.split(',*')
+        for item in line:
+            windowTabLines.append(gui.InputText(str(item), size=15))
+
+        deep_tabbed = copy.deepcopy(windowTabLines)
+        windowLines.append(deep_tabbed)
+        windowTabLines.clear()
+
+        if i != 0 and i % 10 == 0 or i == len(listOfEntries):
+            deep_windowed = copy.deepcopy(windowLines)
+            allTabs.append(deep_windowed)
+            windowLines.clear()
+            for item in header:
+                windowTabLines.append(gui.Text(str(item), size=13))
+            deep_tabbed = copy.deepcopy(windowTabLines)
+            windowLines.append(deep_tabbed)
+            windowTabLines.clear()
+            # windowTabLines.append(gui.Text(item) for item in header)
+            # windowTabLines.append(gui.Text(header), size=15)
+
+
+    # allTabs = allTabs[::-1]
+    tabGroupLayout = []
+    # for tab in allTabs:
+    tabGroupLayout.append([gui.Tab("Tab 1", allTabs[0], key='-TAB1-')])
+    tabGroupLayout.append([gui.Tab("Tab 2", allTabs[1], key='-TAB2-')])
+    # tabGroupLayout.append([gui.Tab("Tab 3", allTabs[2], key='-TAB3-')])
+
+    layout3 = [[gui.TabGroup(tabGroupLayout,
+                             enable_events=True,
+                             key='-TABGROUP-')],
+               [gui.Text('Make tab number'), gui.Input(key='-IN-', size=(3, 1)), gui.Button('Invisible'),
+                gui.Button('Visible'), gui.Button('Select')]]
+
+    return layout3
+
+    # layout2.append([[gui.Text('Lines from the .csv for editing')], ])
+    # for entry in listOfEntries:
+    #     layout2.append(entry)
+    # layout2.append([gui.Button("Next 10 Entries")])
+    #
+    # j = 0
+    #
+    # window2.close()
+    # layout2 = None
+    # j += 1
 
 
 def getQuestionsAndResponses(currentItem, resp, respID):
@@ -96,7 +192,8 @@ def getQuestionsAndResponses(currentItem, resp, respID):
                 respID.append(response['response_label']['@ident'])
                 ans = response['response_label']['flow_mat']['material']['mat_extension'][
                     'mat_formattedtext']['#text']
-                ans = str(ans)[str(ans).index("<p>") + 3:str(ans).index("</p>")]
+                ans = str(ans)
+                ans = ans[ans.find("<p>") + 3: ans.rfind("</p>")]
                 resp.append(ans)
                 pprint(str(respID) + " " + str(ans))
 
@@ -105,6 +202,19 @@ def getQuestionsAndResponses(currentItem, resp, respID):
         "respID": respID,
         "question": question
     }
+
+
+def sanitizeString(s):
+    # retList = []
+    # for r in listR:
+    saniStr = unicodedata.normalize('NFKD', s)
+    saniStr = saniStr.encode('utf-8')
+    saniStr = saniStr.replace(b'\xe2\x80\x9c', b"'")
+    saniStr = saniStr.replace(b'\xe2\x80\x9d', b"'")
+    saniStr = saniStr.replace(b'\xe2\x80\x99', b"'")
+    saniStr = saniStr.decode('utf-8')
+
+    return saniStr
 
 
 def responseSort(currentItem, respList, respIDList):
@@ -124,12 +234,13 @@ def responseSort(currentItem, respList, respIDList):
 
     return sortedRespList
 
+
 # Code from Dr. Gordon for creating the responseOptions line
 def answer_generator_normal(sortedRespList, bracket_char):
     # ResponseOptions = '{"type":"options","optionsRandomOrder":"1","options":['
     ResponseOptions = '{""type"":""options"",""optionsRandomOrder"":""1"",""options"":['
 
-    AnswerOptionRaw = bracket_char*2 + sortedRespList[0] + bracket_char*2
+    AnswerOptionRaw = bracket_char * 2 + sortedRespList[0] + bracket_char * 2
 
     # Each line that looks like this was changed from this:
     # ResponseOptions = ResponseOptions + '{"label":"' + AnswerOptionRaw + '","value":"1"}'
@@ -139,19 +250,19 @@ def answer_generator_normal(sortedRespList, bracket_char):
 
     ResponseOptions = ResponseOptions + ','
 
-    AnswerOptionRaw = bracket_char*2 + sortedRespList[1] + bracket_char*2
+    AnswerOptionRaw = bracket_char * 2 + sortedRespList[1] + bracket_char * 2
 
     ResponseOptions = ResponseOptions + '{""label"":' + AnswerOptionRaw + ',""value"":""2""}'
 
     ResponseOptions = ResponseOptions + ','
 
-    AnswerOptionRaw = bracket_char*2 + sortedRespList[2] + bracket_char*2
+    AnswerOptionRaw = bracket_char * 2 + sortedRespList[2] + bracket_char * 2
 
     ResponseOptions = ResponseOptions + '{""label"":' + AnswerOptionRaw + ',""value"":""3""}'
 
     ResponseOptions = ResponseOptions + ','
 
-    AnswerOptionRaw = bracket_char*2 + sortedRespList[3] + bracket_char*2
+    AnswerOptionRaw = bracket_char * 2 + sortedRespList[3] + bracket_char * 2
 
     ResponseOptions = ResponseOptions + '{""label"":' + AnswerOptionRaw + ',""value"":""4""}'
 
