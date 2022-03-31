@@ -10,13 +10,13 @@ def main():
     gui.ChangeLookAndFeel('DarkAmber')
 
     # add features to the window
-    layout = [[gui.Text('Upload Blackboard sample quiz for conversion to .csv')],
+    layout = [[gui.Text('Upload Blackboard test for conversion to .csv')],
               [gui.Text('Upload .dat file:', size=(15, 1)), gui.InputText(),
                gui.FileBrowse(size=(10, 1), file_types=(("DAT files", "*.dat"),))],
               [gui.Submit(), gui.Cancel()]]
 
     # initialize the window with the layout we made
-    window = gui.Window('Window Title', layout)
+    window = gui.Window('Blackboard Test Conversion', layout)
 
     # loop that handles events and gets the values of whatever is input -- in our case, a .DAT file
     while True:
@@ -89,7 +89,7 @@ def main():
                         print("This is not multiple choice")
 
             csvEditLayout = makeNewLayout(outFileName)
-            window = gui.Window('', csvEditLayout, no_titlebar=False)
+            window = gui.Window('Edit .csv file', csvEditLayout, no_titlebar=False)
 
             # tab_keys = ('-TAB1-', '-TAB2-')#, '-TAB3-') #TODO this is for doing checked or invisible tabs if wanted
             while True:
