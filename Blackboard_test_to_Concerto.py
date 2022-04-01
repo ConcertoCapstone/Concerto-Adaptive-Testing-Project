@@ -17,7 +17,7 @@ def make_window2(out_filename):
     file = open(out_filename, "r")
 
     # TODO add in between layout if statement that allows the user to opt out of this if they so decide (get rid
-    #  of deliniation phrases from csv and return)
+    #  of delineation phrases from csv and return)
     list_of_entries = file.readlines()
     num_entries = len(list_of_entries)
     all_tabs = []
