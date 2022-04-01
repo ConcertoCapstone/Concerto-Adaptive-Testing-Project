@@ -19,12 +19,10 @@ def make_window2(out_filename):
     # TODO add in between layout if statement that allows the user to opt out of this if they so decide (get rid
     #  of delineation phrases from csv and return)
     list_of_entries = file.readlines()
-    num_entries = len(list_of_entries)
     all_tabs = []
     window_lines = []
     window_tab_lines = []
-    header = list_of_entries.pop(0)
-    header = header.split(',*')
+    header = list_of_entries.pop(0).split(',*')
 
     for item in header:
         window_tab_lines.append(gui.Text(str(item), size=13))
@@ -41,7 +39,7 @@ def make_window2(out_filename):
         window_lines.append(deep_tabbed)
         window_tab_lines.clear()
 
-        if i != 0 and i % 10 == 0 or i == num_entries:
+        if i != 0 and i % 10 == 0 or i == len(list_of_entries):
             deep_windowed = copy.deepcopy(window_lines)
             all_tabs.append(deep_windowed)
             window_lines.clear()
@@ -127,7 +125,7 @@ def parse_dat_file(test_file):
                     ret_val = get_questions_and_responses(current_quest, [], [])
                     question_str = sanitize_string(s=ret_val['question'])
                     resp_list = ret_val['resp']
-                    resp_id_list = ret_val['respID']
+                    resp_id_list = ret_val['resp_id']
 
                     sorted_resp_list = response_sort(current_item=current_quest['resprocessing']['respcondition'],
                                                      resp_list=resp_list, resp_id_list=resp_id_list)
@@ -145,7 +143,7 @@ def parse_dat_file(test_file):
     return out_file_name
 
 
-def get_questions_and_responses(current_item, resp, respID):
+def get_questions_and_responses(current_item, resp, resp_id):
     question = ""
     for block in current_item['presentation']['flow']['flow']:
 
@@ -154,14 +152,14 @@ def get_questions_and_responses(current_item, resp, respID):
 
         elif block['@class'] == "RESPONSE_BLOCK":
             for response in block['response_lid']['render_choice']['flow_label']:
-                respID.append(response['response_label']['@ident'])
+                resp_id.append(response['response_label']['@ident'])
                 ans = str(
                     response['response_label']['flow_mat']['material']['mat_extension']['mat_formattedtext']['#text'])
                 ans = ans[ans.find("<p>") + 3: ans.rfind("</p>")]
                 resp.append(ans)
     return {
         "resp": resp,
-        "respID": respID,
+        "resp_id": resp_id,
         "question": question
     }
 
