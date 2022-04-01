@@ -3,216 +3,162 @@ import unicodedata
 import PySimpleGUI as gui
 import xmltodict
 import copy
+import glob
+
+
+def make_window1():
+    layout = [[gui.Text('Upload Blackboard test for conversion to .csv')],
+              [gui.Text('Selected Blackboard Test Folder', size=(15, 1)), gui.FolderBrowse(size=(10, 1))],
+              [gui.Submit(), gui.Cancel()]]
+    return gui.Window('Blackboard Test Conversion', layout, finalize=True)
+
+
+def make_window2(out_filename):
+    file = open(out_filename, "r")
+
+    # TODO add in between layout if statement that allows the user to opt out of this if they so decide (get rid
+    #  of deliniation phrases from csv and return)
+    list_of_entries = file.readlines()
+    num_entries = len(list_of_entries)
+    all_tabs = []
+    window_lines = []
+    window_tab_lines = []
+    header = list_of_entries.pop(0)
+    header = header.split(',*')
+
+    for item in header:
+        window_tab_lines.append(gui.Text(str(item), size=13))
+    deep_tabbed = copy.deepcopy(window_tab_lines)
+    window_lines.append(deep_tabbed)
+    window_tab_lines.clear()
+
+    for i, line in enumerate(list_of_entries, 1):
+        line = line.split(',*')
+        for item in line:
+            window_tab_lines.append(gui.InputText(str(item), size=15))
+
+        deep_tabbed = copy.deepcopy(window_tab_lines)
+        window_lines.append(deep_tabbed)
+        window_tab_lines.clear()
+
+        if i != 0 and i % 10 == 0 or i == num_entries:
+            deep_windowed = copy.deepcopy(window_lines)
+            all_tabs.append(deep_windowed)
+            window_lines.clear()
+            for item in header:
+                window_tab_lines.append(gui.Text(str(item), size=13))
+            deep_tabbed = copy.deepcopy(window_tab_lines)
+            window_lines.append(deep_tabbed)
+            window_tab_lines.clear()
+
+    tab_group_layout = []
+    for j in range(len(all_tabs)):
+        tab_group_layout.append([gui.Tab("Tab %d" % (j + 1), all_tabs[j], key='-TAB%d-' % (j + 1))])
+
+    layout = [[gui.TabGroup(tab_group_layout, enable_events=True, key='-TABGROUP-')], [gui.Submit(), gui.Cancel()]]
+    return gui.Window('Blackboard Test Conversion', layout, finalize=True)
+
+
+def make_window3():
+    layout = [[gui.Text(
+        "Are you sure you want to save the file? Any further changes to the .CSV will need to be made manually.")],
+        [gui.Submit("Confirm"), gui.Cancel()]]
+    return gui.Window('Confirm', layout, no_titlebar=False, finalize=True)
 
 
 def main():
     # set the window color theme
-    gui.ChangeLookAndFeel('DarkAmber')
-
-    # add features to the window
-    layout = [[gui.Text('Upload Blackboard test for conversion to .csv')],
-              [gui.Text('Upload .dat file:', size=(15, 1)), gui.InputText(),
-               gui.FileBrowse(size=(10, 1), file_types=(("DAT files", "*.dat"),))],
-              [gui.Submit(), gui.Cancel()]]
+    gui.ChangeLookAndFeel('DarkGrey13')
 
     # initialize the window with the layout we made
-    window = gui.Window('Blackboard Test Conversion', layout)
+    window1, window2, window3 = make_window1(), None, None
 
-    # loop that handles events and gets the values of whatever is input -- in our case, a .DAT file
     while True:
-        event, values = window.read()
-        if event == gui.WIN_CLOSED or event == 'Cancel':  # if a user closes the window or clicks cancel
-            break
-        elif event == 'Submit':
-            # get the file that is selected using the form
-            file = open(values[0], "rb")
-
-            # read the contents of the file into a variable
-            fileContents = file.read()
-
-            # make a dictionary from the fileContents (which is actually formatted like a xml file) and store it into
-            # a variable
-            contentDict = xmltodict.parse(fileContents.decode())
-
-            # Sift through the dictionary until you get to where the questions are stored
-            # TODO move this to the actual documentation and not in the comments
-            #  We manually found where in the contentDict the file was found by converting the .DAT file to
-            #  an .XML file and using a JetBrains IDE (PyCharm, IntelliJ, etc) to format that .XML file correctly
-            #  so it was humanly-readable
-            contentDict = contentDict['questestinterop']['assessment']['section']['item']
-
-
-            i = 1
-            outFileName = file.name.split(".")[0] + ".csv"
-            with open(outFileName, 'w') as f:
-                # wr = csv.writer(f, quoting=csv.QUOTE_NONE)
-                head = 'id,*fixedIndex,*trait,*question,*responseOptions,*p1,*p2,*p3,*p4,*SubGroupId,' \
-                       '*SubGroupSortOrder\n'
-                f.write(head)
-
-                # iterate through each question in the dictionary
-                for questEntry in contentDict:
-
-                    try:
-                        # if the question is multiple choice -- making sure the questions are the correct type
-                        if questEntry['itemmetadata']['bbmd_questiontype'] == "Multiple Choice":
-                            # store the current question in a variable
-                            currentQuest = questEntry
-
-                            retVal = getQuestionsAndResponses(currentQuest, [], [])
-
-                            questionStr = retVal['question']
-
-                            questionStr = sanitizeString(questionStr)
-
-                            respList = retVal['resp']
-                            respIDList = retVal['respID']
-
-                            sortedRespList = responseSort(currentQuest['resprocessing']['respcondition'], respList,
-                                                          respIDList)
-
-                            responseOptions = answer_generator_normal(sortedRespList, '"')
-                            responseOptions = sanitizeString(responseOptions)
-
-                            # responseOptions = unicodedata.normalize('NFKD', responseOptions)
-
-                            # TODO possibly convert to a list of variables
-                            row = str(i) + ',*,*1,*' + '"' + str(
-                                questionStr) + '",*' + responseOptions + ',*1,*1,*1,*1,*1,*1\n'  # ,* is used as
-                            # a delineation tool later
-
-                        # pprint(row)
-                        f.write(row)
-
-                        i += 1
-                    except ValueError:
-                        print("This is not multiple choice")
-
-            csvEditLayout = makeNewLayout(outFileName)
-            window = gui.Window('Edit .csv file', csvEditLayout, no_titlebar=False)
-
-            # tab_keys = ('-TAB1-', '-TAB2-')#, '-TAB3-') #TODO this is for doing checked or invisible tabs if wanted
-            while True:
-                event, values = window.read()  # type: str, dict
-                print(event, values)
-                if event == gui.WIN_CLOSED:
-                    break
-                elif event == "Submit":
-                    confirmVal = areYouSureWin()
-                    if confirmVal == "Confirm":
-                        return #TODO continue your stuff
-                    elif confirmVal == "Cancel":
-                        break
-
-                elif event == "Cancel":
-                    break
-            # if event == 'Invisible':
-            #     window[tab_keys[int(values['-IN-']) - 1]].update(visible=False)
-            # if event == 'Visible':
-            #     window[tab_keys[int(values['-IN-']) - 1]].update(visible=True)
-            # if event == 'Select':
-            #     window[tab_keys[int(values['-IN-']) - 1]].select()
-
-    window.close()
-
-
-def areYouSureWin():
-    layout = [[gui.Text(
-        "Are you sure you want to save the file? Any further changes to the .CSV will need to be made manually.")],
-              [gui.Submit("Confirm"), gui.Cancel()]]
-
-    window = gui.Window('Confirm', layout, no_titlebar=False)
-
-    # tab_keys = ('-TAB1-', '-TAB2-')#, '-TAB3-') #TODO this is for doing checked or invisible tabs if wanted
-    while True:
-        event, values = window.read()  # type: str, dict
-        print(event, values)
-        if event == gui.WIN_CLOSED:
-            break
-        elif event == "Confirm":
+        window, event, values = gui.read_all_windows()
+        if event == gui.WIN_CLOSED or event == 'Cancel':
             window.close()
-            return "Confirm"
-        elif event == "Cancel":
-            return "Cancel"
-    # ,
-    # [gui.Text('Make tab number'), gui.Input(key='-IN-', size=(3, 1)), gui.Button('Invisible'),
-    #  gui.Button('Visible'), gui.Button('Select')]]
+            if window == window3:
+                window3 = None
+            elif window == window2:
+                window2 = None
+            elif window == window1:
+                break
+        elif event == 'Submit' and not window2 and not window3:
+            test_file = qualify_file(directory=values.get('Browse'))
+            csv_file = parse_dat_file(test_file=test_file)
+            window2 = make_window2(out_filename=csv_file)
+        elif event == 'Submit' and not window3:
+            window3 = make_window3()
+
     window.close()
-    return layout
 
 
-def makeNewLayout(outFilename):
-    file = open(outFilename, "r")
+def parse_dat_file(test_file):
+    file = open(test_file, "rb")
 
-    # TODO add in between layout if statement that allows the user to opt out of this if they so decide (get rid
-    #  of deliniation phrases from csv and return)
-    listOfEntries = file.readlines()
-    numEntries = len(listOfEntries)
-    allTabs = []
-    windowLines = []
-    windowTabLines = []
-    header = listOfEntries.pop(0)
-    header = header.split(',*')
+    # read the contents of the file into a variable
+    file_contents = file.read()
 
-    # windowTabLines.append(gui.Text(item) for item in header)
-    for item in header:
-        windowTabLines.append(gui.Text(str(item), size=13))
-    deep_tabbed = copy.deepcopy(windowTabLines)
-    windowLines.append(deep_tabbed)
-    windowTabLines.clear()
+    # make a dictionary from the fileContents (which is actually formatted like a xml file) and store it into
+    # a variable
+    content_dict = xmltodict.parse(file_contents.decode())
 
-    for i, line in enumerate(listOfEntries, 1):
-        line = line.split(',*')
-        for item in line:
-            windowTabLines.append(gui.InputText(str(item), size=15))
+    # TODO move this to the actual documentation and not in the comments
+    #  We manually found where in the contentDict the file was found by converting the .DAT file to
+    #  an .XML file and using a JetBrains IDE (PyCharm, IntelliJ, etc) to format that .XML file correctly
+    #  so it was humanly-readable
+    # Sift through the dictionary until you get to where the questions are stored
+    content_dict = content_dict['questestinterop']['assessment']['section']['item']
 
-        deep_tabbed = copy.deepcopy(windowTabLines)
-        windowLines.append(deep_tabbed)
-        windowTabLines.clear()
+    out_file_name = file.name.split(".")[0] + ".csv"
+    with open(out_file_name, 'w') as f:
+        # wr = csv.writer(f, quoting=csv.QUOTE_NONE)
+        head = 'id,*fixedIndex,*trait,*question,*responseOptions,*p1,*p2,*p3,*p4,*SubGroupId,' \
+               '*SubGroupSortOrder\n'
+        f.write(head)
 
-        if i != 0 and i % 10 == 0 or i == numEntries:
-            deep_windowed = copy.deepcopy(windowLines)
-            allTabs.append(deep_windowed)
-            windowLines.clear()
-            for item in header:
-                windowTabLines.append(gui.Text(str(item), size=13))
-            deep_tabbed = copy.deepcopy(windowTabLines)
-            windowLines.append(deep_tabbed)
-            windowTabLines.clear()
+        # iterate through each question in the dictionary
+        for i, questEntry in enumerate(content_dict, start=1):
+            try:
+                # if the question is multiple choice -- making sure the questions are the correct type
+                if questEntry['itemmetadata']['bbmd_questiontype'] == "Multiple Choice":
+                    # store the current question in a variable
+                    current_quest = questEntry
+                    ret_val = get_questions_and_responses(current_quest, [], [])
+                    question_str = sanitize_string(s=ret_val['question'])
+                    resp_list = ret_val['resp']
+                    resp_id_list = ret_val['respID']
 
-    tabGroupLayout = []
-    for j in range(len(allTabs)):
-        tabGroupLayout.append([gui.Tab("Tab %d" % (j + 1), allTabs[j], key='-TAB%d-' % (j + 1))])
+                    sorted_resp_list = response_sort(current_item=current_quest['resprocessing']['respcondition'],
+                                                     resp_list=resp_list, resp_id_list=resp_id_list)
+                    response_options = answer_generator_normal(sorted_resp_list, '"')
+                    response_options = sanitize_string(s=response_options)
 
-    layout = [[gui.TabGroup(tabGroupLayout,
-                            enable_events=True,
-                            key='-TABGROUP-')],
-              [gui.Submit(), gui.Cancel()]]
-    # ,
-    # [gui.Text('Make tab number'), gui.Input(key='-IN-', size=(3, 1)), gui.Button('Invisible'),
-    #  gui.Button('Visible'), gui.Button('Select')]]
+                    # TODO possibly convert to a list of variables
+                    row = str(i) + ',*,*1,*' + '"' + str(
+                        question_str) + '",*' + response_options + ',*1,*1,*1,*1,*1,*1\n'
+                    # ,* is used as a delineation tool later
+                f.write(row)
 
-    return layout
+            except ValueError:
+                print("This is not multiple choice")
+    return out_file_name
 
 
-def getQuestionsAndResponses(currentItem, resp, respID):
+def get_questions_and_responses(current_item, resp, respID):
     question = ""
-    for block in currentItem['presentation']['flow']['flow']:
+    for block in current_item['presentation']['flow']['flow']:
 
         if block['@class'] == "QUESTION_BLOCK":
             question = block['flow']['material']['mat_extension']['mat_formattedtext']['#text']
-            pprint(question)
 
         elif block['@class'] == "RESPONSE_BLOCK":
             for response in block['response_lid']['render_choice']['flow_label']:
                 respID.append(response['response_label']['@ident'])
-                ans = response['response_label']['flow_mat']['material']['mat_extension'][
-                    'mat_formattedtext']['#text']
-                ans = str(ans)
+                ans = str(
+                    response['response_label']['flow_mat']['material']['mat_extension']['mat_formattedtext']['#text'])
                 ans = ans[ans.find("<p>") + 3: ans.rfind("</p>")]
                 resp.append(ans)
-                pprint(str(respID) + " " + str(ans))
-
     return {
         "resp": resp,
         "respID": respID,
@@ -220,78 +166,56 @@ def getQuestionsAndResponses(currentItem, resp, respID):
     }
 
 
-def sanitizeString(s):
-    # retList = []
-    # for r in listR:
-    saniStr = unicodedata.normalize('NFKD', s)
-    saniStr = saniStr.encode('utf-8')
-    saniStr = saniStr.replace(b'\xe2\x80\x9c', b"'")
-    saniStr = saniStr.replace(b'\xe2\x80\x9d', b"'")
-    saniStr = saniStr.replace(b'\xe2\x80\x99', b"'")
-    saniStr = saniStr.decode('utf-8')
-
-    return saniStr
+def sanitize_string(s):
+    sanitize_str = unicodedata.normalize('NFKD', s)
+    sanitize_str = sanitize_str.encode('utf-8')
+    sanitize_str = sanitize_str.replace(b'\xe2\x80\x9c', b"'")
+    sanitize_str = sanitize_str.replace(b'\xe2\x80\x9d', b"'")
+    sanitize_str = sanitize_str.replace(b'\xe2\x80\x99', b"'")
+    sanitize_str = sanitize_str.decode('utf-8')
+    return sanitize_str
 
 
-def responseSort(currentItem, respList, respIDList):
-    sortedRespList = [respList[0]]
-    i = 0
+def response_sort(current_item, resp_list, resp_id_list):
+    sorted_resp_list = [resp_list[0]]
 
-    for setOfResponses in currentItem:
-        if setOfResponses['@title'] == "correct":
-            for respID in respIDList:
-                print(setOfResponses)
-                if respID == setOfResponses['conditionvar']['varequal']['#text']:
-                    sortedRespList[0] = respList[i]
+    for set_of_responses in current_item:
+        if set_of_responses['@title'] == "correct":
+            for i, respID in enumerate(resp_id_list):
+                if respID == set_of_responses['conditionvar']['varequal']['#text']:
+                    sorted_resp_list[0] = resp_list[i]
                 else:
-                    sortedRespList.append(respList[i])
-                i = i + 1
+                    sorted_resp_list.append(resp_list[i])
             break
-
-    return sortedRespList
+    return sorted_resp_list
 
 
 # Code from Dr. Gordon for creating the responseOptions line
-def answer_generator_normal(sortedRespList, bracket_char):
-    # ResponseOptions = '{"type":"options","optionsRandomOrder":"1","options":['
-    ResponseOptions = '{""type"":""options"",""optionsRandomOrder"":""1"",""options"":['
+def answer_generator_normal(sorted_resp_list, bracket_char):
+    response_options = '{""type"":""options"",""optionsRandomOrder"":""1"",""options"":['
 
-    AnswerOptionRaw = bracket_char * 2 + sortedRespList[0] + bracket_char * 2
+    for i in range(4):
+        raw_answer_option = bracket_char * 2 + sorted_resp_list[i] + bracket_char * 2
+        temp = i + 1
+        response_options += '{""label"":' + raw_answer_option + ',""value"":""' + str(temp) + '""}'
+        if i < 3:
+            response_options += ','
+    response_options += '],""defaultScore"":""0"",""scoreMap"":[{""value"":""1"",""score"":""1"",""trait"":null}]}'
 
-    # Each line that looks like this was changed from this:
-    # ResponseOptions = ResponseOptions + '{"label":"' + AnswerOptionRaw + '","value":"1"}'
-    # To this:
-    ResponseOptions = ResponseOptions + '{""label"":' + AnswerOptionRaw + ',""value"":""1""}'
-    # This is because there were too many quotes
+    response_options = response_options.replace('\\', '\\\\')
+    response_options = '"' + response_options + '"'
+    return response_options
 
-    ResponseOptions = ResponseOptions + ','
 
-    AnswerOptionRaw = bracket_char * 2 + sortedRespList[1] + bracket_char * 2
-
-    ResponseOptions = ResponseOptions + '{""label"":' + AnswerOptionRaw + ',""value"":""2""}'
-
-    ResponseOptions = ResponseOptions + ','
-
-    AnswerOptionRaw = bracket_char * 2 + sortedRespList[2] + bracket_char * 2
-
-    ResponseOptions = ResponseOptions + '{""label"":' + AnswerOptionRaw + ',""value"":""3""}'
-
-    ResponseOptions = ResponseOptions + ','
-
-    AnswerOptionRaw = bracket_char * 2 + sortedRespList[3] + bracket_char * 2
-
-    ResponseOptions = ResponseOptions + '{""label"":' + AnswerOptionRaw + ',""value"":""4""}'
-
-    ResponseOptions = ResponseOptions + '],""defaultScore"":""0"",""scoreMap"":[{""value"":""1"",""score"":""1"",""trait"":null}]}'
-
-    ResponseOptions = ResponseOptions.replace('\\', '\\\\')
-
-    # ResponseOptions = ResponseOptions.replace('"', '""')
-
-    # Lines added by Chris
-    ResponseOptions = '"' + ResponseOptions + '"'
-
-    return ResponseOptions
+# given a directory, will look through the files and find the one containing
+# proper information about the tests
+# (check if <questestinterop> is universal between tests in blackboard)
+def qualify_file(directory):
+    for filename in glob.iglob(f'{directory}/*'):
+        with open(filename, 'r', encoding='utf-8') as f:
+            readfile = f.read()
+            if '<questestinterop>' in readfile:
+                return filename
 
 
 if __name__ == '__main__':
