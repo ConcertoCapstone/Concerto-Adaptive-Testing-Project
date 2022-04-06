@@ -1,4 +1,3 @@
-from pprint import pprint
 import unicodedata
 import PySimpleGUI as gui
 import xmltodict
@@ -64,12 +63,19 @@ def make_window3():
     return gui.Window('Confirm', layout, no_titlebar=False, finalize=True)
 
 
+# def make_window4():
+#     layout = [[gui.Text(
+#         "Would you like to edit the test questions now or in a .csv file later?")],
+#         [gui.Submit("Confirm"), gui.Cancel()]]
+#     return gui.Window('Confirm', layout, no_titlebar=False, finalize=True)
+
+
 def main():
     # set the window color theme
     gui.ChangeLookAndFeel('DarkGrey13')
 
     # initialize the window with the layout we made
-    window1, window2, window3 = make_window1(), None, None
+    window1, window2, window3= make_window1(), None, None
 
     while True:
         window, event, values = gui.read_all_windows()
@@ -209,7 +215,7 @@ def answer_generator_normal(sorted_resp_list, bracket_char):
 # proper information about the tests
 # (check if <questestinterop> is universal between tests in blackboard)
 def qualify_file(directory):
-    for filename in glob.iglob(f'{directory}/*'):
+    for filename in glob.iglob(f'{directory}/*.dat'):
         with open(filename, 'r', encoding='utf-8') as f:
             readfile = f.read()
             if '<questestinterop>' in readfile:
