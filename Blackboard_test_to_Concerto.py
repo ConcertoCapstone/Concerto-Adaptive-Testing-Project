@@ -6,8 +6,8 @@ import glob
 
 
 def make_window1():
-    layout = [[gui.Text('Upload Blackboard test for conversion to .csv')],
-              [gui.Text('Selected Blackboard Test Folder', size=(15, 1)), gui.FolderBrowse(size=(10, 1))],
+    layout = [[gui.Text('Select folder containing Blackboard test for conversion to .csv')],
+              [gui.Text('Select Blackboard Test Folder', size=(25, 1)), gui.FolderBrowse(size=(10, 1))],
               [gui.Submit(), gui.Cancel()]]
     return gui.Window('Blackboard Test Conversion', layout, finalize=True)
 
@@ -22,6 +22,7 @@ def make_window2(out_filename):
     window_lines = []
     window_tab_lines = []
     header = list_of_entries.pop(0).split(',*')
+    # list_of_entries.pop(0).replace(',*', ',')
 
     for item in header:
         window_tab_lines.append(gui.Text(str(item), size=13))
