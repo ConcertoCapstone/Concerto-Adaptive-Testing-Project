@@ -102,16 +102,25 @@ def main():
                 window.close()
         elif event == 'Later' or gui.WIN_CLOSED:
             if window == now_later[0]:
+                write_file_no_edits(now_later[1])
                 window.close()
         elif event == 'Confirm':
             if window == confirmation[0]:
-                write_file_and_save(out_filename=now_later[1], tab_vals=confirmation[1])
+                write_file_with_edits(out_filename=now_later[1], tab_vals=confirmation[1])
                 return
 
     window.close()
 
+def write_file_no_edits(out_filename):
+    file = open(out_filename, "r")
 
-def write_file_and_save(out_filename, tab_vals):
+    with open ("Blackboard_to_Concerto.csv", 'w') as f:
+        lines = file.readlines()
+        for line in lines:
+            f.write(line.replace(",*", ","))
+
+
+def write_file_with_edits(out_filename, tab_vals):
     with open("Blackboard_to_Concerto.csv", 'w') as f:
         f.write('id,fixedIndex,trait,question,responseOptions,p1,p2,p3,p4,SubGroupId,SubGroupSortOrder\n')
         line = ""
