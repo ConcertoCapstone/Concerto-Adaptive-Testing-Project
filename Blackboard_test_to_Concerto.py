@@ -5,14 +5,14 @@ import copy
 import glob
 
 
-def make_window1():
+def browse_window():
     layout = [[gui.Text('Select folder containing Blackboard test for conversion to .csv')],
               [gui.Text('Select Blackboard Test Folder', size=(25, 1)), gui.FolderBrowse(size=(10, 1))],
               [gui.Submit(), gui.Cancel()]]
     return gui.Window('Blackboard Test Conversion', layout, finalize=True)
 
 
-def make_window2(out_filename):
+def tab_window(out_filename):
     file = open(out_filename, "r")
 
     # TODO add in between layout if statement that allows the user to opt out of this if they so decide (get rid
@@ -57,18 +57,18 @@ def make_window2(out_filename):
     return gui.Window('Blackboard Test Conversion', layout, finalize=True)
 
 
-def make_window3():
+def confirmation_window(tab_vals):
     layout = [[gui.Text(
         "Are you sure you want to save the file? Any further changes to the .CSV will need to be made manually.")],
         [gui.Submit("Confirm"), gui.Cancel()]]
-    return gui.Window('Confirm', layout, no_titlebar=False, finalize=True)
+    return gui.Window('Confirm', layout, no_titlebar=False, finalize=True), tab_vals
 
 
-# def make_window4():
-#     layout = [[gui.Text(
-#         "Would you like to edit the test questions now or in a .csv file later?")],
-#         [gui.Submit("Confirm"), gui.Cancel()]]
-#     return gui.Window('Confirm', layout, no_titlebar=False, finalize=True)
+def now_later_window(out_filename):
+    layout = [[gui.Text(
+        "Would you like to edit the test questions now or in a .csv file later?")],
+        [gui.Submit("Now"), gui.Cancel("Later")]]
+    return gui.Window('Edit now or later?', layout, no_titlebar=False, finalize=True), out_filename
 
 
 def main():
@@ -76,26 +76,59 @@ def main():
     gui.ChangeLookAndFeel('DarkGrey13')
 
     # initialize the window with the layout we made
-    window1, window2, window3= make_window1(), None, None
+    browse, now_later, tab, confirmation = browse_window(), None, None, None
 
     while True:
         window, event, values = gui.read_all_windows()
         if event == gui.WIN_CLOSED or event == 'Cancel':
             window.close()
-            if window == window3:
-                window3 = None
-            elif window == window2:
-                window2 = None
-            elif window == window1:
+            if window == confirmation:
+                confirmation = None
+            elif window == tab:
+                tab = None
+            elif window == browse:
                 break
-        elif event == 'Submit' and not window2 and not window3:
-            test_file = qualify_file(directory=values.get('Browse'))
-            csv_file = parse_dat_file(test_file=test_file)
-            window2 = make_window2(out_filename=csv_file)
-        elif event == 'Submit' and not window3:
-            window3 = make_window3()
+        elif event == 'Submit':
+            if window == browse:
+                test_file = qualify_file(directory=values.get('Browse'))
+                csv_file = parse_dat_file(test_file=test_file)
+                now_later = now_later_window(out_filename=csv_file)
+            elif window == tab:
+                confirmation = confirmation_window(tab_vals=window.read()[1])
+                print("hello")
+        elif event == 'Now':
+            if window == now_later[0]:
+                tab = tab_window(out_filename=now_later[1])
+                window.close()
+        elif event == 'Later' or gui.WIN_CLOSED:
+            if window == now_later[0]:
+                window.close()
+        elif event == 'Confirm':
+            if window == confirmation[0]:
+                write_file_and_save(out_filename=now_later[1], tab_vals=confirmation[1])
+                return
 
     window.close()
+
+
+def write_file_and_save(out_filename, tab_vals):
+    with open("Blackboard_to_Concerto.csv", 'w') as f:
+        f.write('id,fixedIndex,trait,question,responseOptions,p1,p2,p3,p4,SubGroupId,SubGroupSortOrder\n')
+        line = ""
+        count = 0
+        for i in tab_vals.values():
+            if count == 11: # Hardcoded for the number of columns
+                f.write(line)
+                line = ""
+                count = 0
+            if line == "":
+                line += str(i)
+            else:
+                line += "," + str(i)
+
+            count += 1
+
+
 
 
 def parse_dat_file(test_file):
