@@ -1,0 +1,5 @@
+the files from here are from what Gordon sent:
+Test_ExportFile_2022-SP-UT-BEH385-A_Lab 11A (Practice Lab) Reliability & Factor Analysis (1)
+res00001.dat didn't work with Chris' base code, so ignore for now
+res00002.dat does work with no modifications. So use this one for now
+haven't checked the others
