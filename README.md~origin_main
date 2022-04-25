@@ -42,7 +42,7 @@ AuthorizeUser:
 
 After test start the program must authorize that the intended user is taking the correct test. This is done using the Concerto Authorize User block. To ensure that this block is working correctly, simply navigate to the Data Table tab under the block and select the table of users you would like to use to authenticate.
 
-![Screen Shot 2022-02-04 at 8.37.36 AM.png](docimg/Screen_Shot_2022-02-04_at_8.37.36_AM.png)
+![Screen Shot 2022-02-04 at 8.37.36 AM.png](Concerto-Adaptive-Testing-Project/docimg/Screen_Shot_2022-02-04_at_8.37.36_AM.png)
 
 Questions Data Table:
 
