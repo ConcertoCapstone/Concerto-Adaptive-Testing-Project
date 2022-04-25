@@ -162,3 +162,90 @@ Thank you for participating in the test. Your scores are as follows: 
 Attached below as well is a full image of our workflow to give you an idea of the setup for displaying to the test takers. Hope this helps 😃 - CATT Team
 
 ![Untitled](docimg/Untitled%2010.png)
+
+# Concerto Adaptive Testing GUI
+
+## About
+
+This program is designed to take raw files generated from Blackboard's tests and convert that into a correctly formatted csv file to uploaded into Concerto. This is to limit any interactions a professor would have with handling Concerto themselves. Concerto tends to have too many bells and whistles that the average professor should need to worry about. “User” and “professor” will be used 
+
+## Usage
+
+1. The professor would need to download the test they want to enter into Concerto. They then need to unzip the folder and put it in a location they will remember it
+2. Open the CATT program, select **Browse** and go to your Blackboard test folder you downloaded in the previous step. The prompt next to the **Browse** button should update to the folder path to your Blackboard 
+3. Once you’ve checked that the path matches where you stored your Blackboard folder, click the **Submit** button
+4. Now a new window will appear that will prompt you if want the file to be converted into a CSV as is or if you want to revise the file before you convert into a CSV. Clicking the **Later** button will produce the CSV file with questions pulled from the Blackboard download and finish the process. Selecting the **Now** button will produce a new screen to preview and edit the CSV
+5. The new window from selecting **Now** will show you all editable data from your Blackboard test. Look through the different characteristics of the each column to see if they match your needs. The user will only be able to view 10 questions at a time. Go to the next tab to view the next 10 questions. Refer to the **Edit Page** portion to gain an understanding of each column.
+6. After approving of the test data, hit the **Submit** to turn it into a CSV file
+7. Upload this CSV file to Concerto and you have completed your process. 🙂
+
+## Edit Page
+
+![Untitled 11](docimg/Untitled%2011.png)
+
+This page allows for the user to edit different attributes to each question.
+
+### Needed For Concerto. Do Not Edit
+
+### *ID*
+
+### *Trait*
+
+### *Question*
+
+Contains the question for this problem. Change the text within the <p> and </p>. Please do not delete the quotations and the p tags.
+
+```
+"<p>What 2 components are analyzed in this lab? </p>”
+```
+
+### *Response Options*
+
+Contains the possible responses available for the corresponding question. The responses are nested inside of the text and are highlighted blue in the text below. Everything inside the quotation marks following the keyword label and preceding the coma is the multiple choice response option and number following the keyword value and preceding the coma is that response’s order that it will appear in the test (think if the value is 1, then this will be option A)
+
+Please refrain from removing the quotation marks and the keywords such as “type” and “options” and other words that not highlighted. Only change the text within quotation marks following the keyword label and the number value within quotation marks following the value keyword
+
+```
+"{""type"":""options"",""optionsRandomOrder"":""1"",""options"":[{""label"":""Reliability and construct validity"",""value"":""1""},{""label"":""Factor Analysis &amp; ANOVA"",""value"":""2""},{""label"":""ANOVA &amp; Reliability"",""value"":""3""},{""label"":""Construct Validity &amp; Chronbach Alpha"",""value"":""4""}],""defaultScore"":""0"",""scoreMap"":[{""value"":""1"",""score"":""1"",""trait"":null}]}"
+```
+
+### P1-4
+
+The columns labeled *P1-4* are used to calculate the weight each response has (response 1 has the weight from ***P1*** and so on)
+
+### *SubGroupId*
+
+Manages what questions are related to each other, i.e. which questions either build off one another or which questions follow the same topic. 
+
+### *SubGroupSortOrder*
+
+*S*pecifies what order these questions within each subgroup should appear in. Directly relates to ***SubGroupId***
+
+The first row from the image above will create a question to look similar to:
+
+What 2 components are analyzed in this lab?
+
+- [ ]  Reliability and construct validity
+- [ ]  Factor Analysis & ANOVA
+- [ ]  ANOVA & Reliability
+- [ ]  Construct Validity & Chronbach Alpha
+
+Since all the values from ***P1-4*** remained at value 1, each response hold the same weight of 1
+
+### Creating A New Executable
+
+If changes were made to the code, then the need to update the executable will be necessary.  To do so is very [simple](https://pypi.org/project/pysimplegui-exemaker/). The GUI was made exclusively with PySimpleGUI and included inside of the requirements.txt is a library that allows the creation of a .exe file (`pysimplegui-exemaker`). Run the command in the terminal of the project
+
+```
+python -m pysimplegui-exemaker.pysimplegui-exemaker
+```
+
+This will prompt the following screen, where the file location of the code should be placed in the “Source Python File” and the icon image file should be placed below it. The image file must be an ICO image, which can be made from any PNG or JPG image at this [link](https://icoconvert.com/). The executable will be produced inside of the directory where the file is located. Feel free to move the executable anywhere on your computer
+
+![Untitled 12](docimg/Untitled%2012.png)
+
+### Miscellaneous Details
+
+There certainly are spots where the executable can be improved upon. For example, only showing the necessary information when displaying what can be edited, splitting the ***ResponseOptions*** column to show each question in its own column to avoid the over crowdedness from the current column, along with only showing the responses (***ResponseOptions → ResponseOption1, ResponseOption2, etc.***)
+
+When downloading the files from Blackboard, the files will be DAT files, which a computer (at least a Windows computer) won’t know how to open. Change the file to an XML file (change the .DAT to .xml) to be able to view it yourself. The code provided works with a DAT file, you do not change the file to XML for it to work in this program. This is so you can view it.
