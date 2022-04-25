@@ -64,6 +64,10 @@ First of all, using the eval block that is built into Concerto the user can eval
 
 ![Untitled](docimg/Untitled%202.png)
 
+## Rescoring
+
+The client provided us with a file that was formerly used to rescore tests in Rstudio. The client wanted us to import this code into a node in concerto. Test  #86: Reuella Rescoring Test had the data manipulation to pull data from the correct data tables. The code has been partially implemented in concerto. If you go to the rescoring folder, the "concerto_node_rescoring" file has comments that indicate what all has been done and what all needs to be completed. 
+
 ## GUI For Converting BlackBoard Test to Concerto
 
 ### Dependencies and Software Specification

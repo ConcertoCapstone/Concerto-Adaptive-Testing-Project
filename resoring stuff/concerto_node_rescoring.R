@@ -83,13 +83,13 @@ for (k in 1:10){
   ############################################
 
 
-  """
-  Because of the way concerto nodes work. We get the variable result from the data manipulation node in concerto.
-  In the client's recoring node this is actually called answer_data.
 
-  results is an empty list we populate
-  result is the answers_data data frame
-  """
+  # Because of the way concerto nodes work. We get the variable result from the data manipulation node in concerto.
+  # In the client's recoring node this is actually called answer_data.
+
+  # results is an empty list we populate
+  # result is the answers_data data frame
+
   # test_question_instance = 1
   results = list()
 
