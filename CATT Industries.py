@@ -4,32 +4,55 @@ import xmltodict
 import copy
 import glob
 
+"""
+Code written by Christopher Styerwalt and Roberto Rodriguez for the Concerto Adaptive Testing Team
+EGR 402 Spring 2022
+Client Dr. Gordon
+
+Code here is designed to take raw files generated from Blackboard's tests and convert 
+that into a correctly formatted csv file to uploaded into Concerto. This is to limit any 
+interactions a professor would have with handling Concerto themselves.
+
+The code below will perform a variety of functions. Those include creating the windows
+that the user will use and walk them through the process, selecting the appropriate file from 
+the folder Blackboard will provide after downloading a test from their service, gathering and cleaning 
+the data needed from the Blackboard test to upload into Concerto, and converting the test into a csv
+with the correct information that Concerto requires even after the user decides to change values from
+the gui.
+"""
+
 
 def browse_window():
     layout = [[gui.Text('Select folder containing Blackboard test for conversion to .csv')],
-              [gui.Text('Select Blackboard Test Folder', size=(25, 1)), gui.FolderBrowse(size=(10, 1))],
+              [gui.Text('Select Blackboard Test Folder', size=(35, 1)), gui.FolderBrowse(size=(10, 1))],
               [gui.Submit(), gui.Cancel()]]
     return gui.Window('Blackboard Test Conversion', layout, finalize=True)
 
 
+# this is the only window that contains functionality outside purely gui information
+# the name of the file to output to will be given and written to.
 def tab_window(out_filename):
     file = open(out_filename, "r")
 
-    # TODO add in between layout if statement that allows the user to opt out of this if they so decide (get rid
-    #  of delineation phrases from csv and return)
+    # read all lines from the file, pop the first item (which will be the header of the csv), then split into a
+    # list (dividing every header)
+    # First,*Second,*Third  =>  [First, Second, Third]
     list_of_entries = file.readlines()
     all_tabs = []
     window_lines = []
     window_tab_lines = []
     header = list_of_entries.pop(0).split(',*')
-    # list_of_entries.pop(0).replace(',*', ',')
 
+    # To keep maintain reusable variables, we transfer and cast the headers into a list that is used create the gui
     for item in header:
         window_tab_lines.append(gui.Text(str(item), size=13))
+    # copy the header gui specifications into the deep_tabbed variable that contains the tab specific
+    # data (all the rows on this page)
     deep_tabbed = copy.deepcopy(window_tab_lines)
     window_lines.append(deep_tabbed)
-    window_tab_lines.clear()
+    window_tab_lines.clear()  # we need to clear this list to ensure that create a new row of data instead of appending
 
+    # Continue to parse through the rows of editable data, then through each individual item from that row
     for i, line in enumerate(list_of_entries, 1):
         line = line.split(',*')
         for item in line:
@@ -39,6 +62,7 @@ def tab_window(out_filename):
         window_lines.append(deep_tabbed)
         window_tab_lines.clear()
 
+        # keep rows per tab to be limited at 10
         if i != 0 and i % 10 == 0 or i == len(list_of_entries):
             deep_windowed = copy.deepcopy(window_lines)
             all_tabs.append(deep_windowed)
@@ -71,6 +95,8 @@ def now_later_window(out_filename):
     return gui.Window('Edit now or later?', layout, no_titlebar=False, finalize=True), out_filename
 
 
+# Controls what window is being viewed and with what information. Will be listening to events and
+# switch to appropriate window accordingly
 def main():
     # set the window color theme
     gui.ChangeLookAndFeel('DarkGrey13')
@@ -82,12 +108,14 @@ def main():
         window, event, values = gui.read_all_windows()
         if event == gui.WIN_CLOSED or event == 'Cancel':
             window.close()
+
             if window == confirmation:
                 confirmation = None
             elif window == tab:
                 tab = None
             elif window == browse:
                 break
+
         elif event == 'Submit':
             if window == browse:
                 test_file = qualify_file(directory=values.get('Browse'))
@@ -96,37 +124,41 @@ def main():
             elif window == tab:
                 confirmation = confirmation_window(tab_vals=window.read()[1])
                 print("hello")
+
         elif event == 'Now':
             if window == now_later[0]:
                 tab = tab_window(out_filename=now_later[1])
                 window.close()
+
         elif event == 'Later' or gui.WIN_CLOSED:
             if window == now_later[0]:
                 write_file_no_edits(now_later[1])
                 window.close()
+
         elif event == 'Confirm':
             if window == confirmation[0]:
-                write_file_with_edits(out_filename=now_later[1], tab_vals=confirmation[1])
+                write_file_with_edits(tab_vals=confirmation[1])
                 return
 
     window.close()
 
+
 def write_file_no_edits(out_filename):
     file = open(out_filename, "r")
 
-    with open ("Blackboard_to_Concerto.csv", 'w') as f:
+    with open("Blackboard_to_Concerto.csv", 'w') as f:
         lines = file.readlines()
         for line in lines:
             f.write(line.replace(",*", ","))
 
 
-def write_file_with_edits(out_filename, tab_vals):
+def write_file_with_edits(tab_vals):
     with open("Blackboard_to_Concerto.csv", 'w') as f:
         f.write('id,fixedIndex,trait,question,responseOptions,p1,p2,p3,p4,SubGroupId,SubGroupSortOrder\n')
         line = ""
         count = 0
         for i in tab_vals.values():
-            if count == 11: # Hardcoded for the number of columns
+            if count == 11:  # Hardcoded for the number of columns
                 f.write(line)
                 line = ""
                 count = 0
@@ -138,8 +170,7 @@ def write_file_with_edits(out_filename, tab_vals):
             count += 1
 
 
-
-
+# Sifts through the .DAT files, finding the information needed from the questions
 def parse_dat_file(test_file):
     file = open(test_file, "rb")
 
@@ -150,10 +181,6 @@ def parse_dat_file(test_file):
     # a variable
     content_dict = xmltodict.parse(file_contents.decode())
 
-    # TODO move this to the actual documentation and not in the comments
-    #  We manually found where in the contentDict the file was found by converting the .DAT file to
-    #  an .XML file and using a JetBrains IDE (PyCharm, IntelliJ, etc) to format that .XML file correctly
-    #  so it was humanly-readable
     # Sift through the dictionary until you get to where the questions are stored
     content_dict = content_dict['questestinterop']['assessment']['section']['item']
 
@@ -181,10 +208,10 @@ def parse_dat_file(test_file):
                     response_options = answer_generator_normal(sorted_resp_list, '"')
                     response_options = sanitize_string(s=response_options)
 
-                    # TODO possibly convert to a list of variables
+                    # ,* is used as a delineation tool later
                     row = str(i) + ',*,*1,*' + '"' + str(
                         question_str) + '",*' + response_options + ',*1,*1,*1,*1,*1,*1\n'
-                    # ,* is used as a delineation tool later
+
                 f.write(row)
 
             except ValueError:
@@ -192,6 +219,7 @@ def parse_dat_file(test_file):
     return out_file_name
 
 
+# Returns a dictionary of the question, responses for that question, and the id's for those responses
 def get_questions_and_responses(current_item, resp, resp_id):
     question = ""
     for block in current_item['presentation']['flow']['flow']:
@@ -213,6 +241,8 @@ def get_questions_and_responses(current_item, resp, resp_id):
     }
 
 
+# Grabs characters that aren't readable/visible in the text encoding that Concerto uses, and replaces it with a '
+# character
 def sanitize_string(s):
     sanitize_str = unicodedata.normalize('NFKD', s)
     sanitize_str = sanitize_str.encode('utf-8')
